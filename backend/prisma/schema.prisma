@@ -1,203 +1,97 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+// Loan Management System Schema
 
 generator client {
-  provider = "prisma-client"
-  output   = "../generated/prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
 }
 
-// buat skema database ecom
+//////////////////////////////////////////////////////
+// ENUM
+//////////////////////////////////////////////////////
 
-// enums
 enum Role {
-  USER
   ADMIN
+  PEMINJAM
 }
 
-enum OrderStatus {
-  PENDING
-  PROCESSING
-  SHIPPED
-  DELIVERED
-  CANCELED
+enum LoanStatus {
+  DIPINJAM
+  DIKEMBALIKAN
+  TERLAMBAT
 }
 
-enum PaymentStatus {
-  PENDING
-  COMPLETED
-  FAILED
-  REFUNDED
-}
-// table / model
+//////////////////////////////////////////////////////
+// USER
+// Admin & Peminjam berada di satu tabel
+//////////////////////////////////////////////////////
+
 model User {
-  id String @id @default(uuid())
-  email String @unique
-  password String
-  firstName String?
-  lastName String?
-  role Role @default(USER)
-  refreshToken String?
-  
-  orders Order[]
-  carts Cart[]
-  payments Payment[]
+  id        String   @id @default(uuid())
+  nama      String
+  email     String   @unique
+  password  String
+  role      Role
+
+  // Relasi
+  loansAsPeminjam Loan[] @relation("PeminjamLoan")
+  loansAsAdmin    Loan[] @relation("AdminLoan")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@index([email])
-  @@map("users")
+  // Index
+  @@index([role])
 }
 
-model Category {
-  id String @id @default(uuid())
-  name String @unique
-  description String?
-  slug String @unique
-  imageUrl String?
-  isActive Boolean @default(true)
-  
-  products Product[]
+//////////////////////////////////////////////////////
+// BARANG
+//////////////////////////////////////////////////////
+
+model Barang {
+  id          String   @id @default(uuid())
+  kodeBarang  String   @unique
+  namaBarang  String
+  kondisi     String
+  stok        Int
+
+  loans       Loan[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Index untuk pencarian
+  @@index([namaBarang])
+}
+
+//////////////////////////////////////////////////////
+// LOAN (PEMINJAMAN)
+//////////////////////////////////////////////////////
+
+model Loan {
+  id             String     @id @default(uuid())
+  tanggalPinjam  DateTime   @default(now())
+  tanggalKembali DateTime?
+  status         LoanStatus
+
+  // Foreign Keys
+  peminjamId String
+  adminId    String
+  barangId   String
+
+  // Relations
+  peminjam User   @relation("PeminjamLoan", fields: [peminjamId], references: [id])
+  admin    User   @relation("AdminLoan", fields: [adminId], references: [id])
+  barang   Barang @relation(fields: [barangId], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@index([name])
-}
-
-model Product {
-  id String @id @default(uuid())
-  name String
-  description String?
-  price Decimal @db.Decimal(10, 2)
-  stock Int @default(0)
-  sku String @unique
-  imageUrl String?
-  isActive Boolean @default(true)
-
-  // relasi 
-  oderitems OrderItem[]
-  cartitems CartItem[]
-
-  categoryId String
-  category Category @relation(fields: [categoryId], references: [id])
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([sku])
-  @@index([categoryId])
-  @@index([isActive])
-  @@map("products")
-}
-
-
-model OrderItem {
-  id String @id @default(uuid())
-  quantity Int
-  price Decimal @db.Decimal(10, 2)
-  productId String
-  product Product @relation(fields: [productId], references: [id])
-
-  orderId String
-  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  
-  createAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([orderId])
-  @@index([productId])
-  @@map("order_items")
-
-}
-
-model CartItem {
-  id String @id @default(uuid())
-  quantity Int @default(1)
-  productId String
-  product Product @relation(fields: [productId], references: [id])
-
-  cartId String
-  cart Cart @relation(fields: [cartId], references: [id], onDelete: Cascade)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@unique([cartId, productId])
-  @@index([cartId])
-  @@index([productId])
-  @@map("cart_items")
-}
-
-model Order {
-  id String @id @default(uuid())
-  orderNumber String @unique @default(cuid())
-  status OrderStatus
-  totalAmount Decimal @db.Decimal(10, 2)
-  userId String
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  cartId String?
-  cart Cart? @relation(fields: [cartId], references: [id])
-
-  shippingAddress String?
-
-  orderItems OrderItem[]
-
-  payment Payment?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([userId])
-  @@index([orderNumber])
+  // Index (KRUSIAL)
+  @@index([peminjamId])
+  @@index([adminId])
+  @@index([barangId])
   @@index([status])
-  @@map("orders")
-}
-
-model Cart {
-  id String @id @default(uuid())
-  userId String
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  orders Order[]
-  checkOut Boolean @default(false)
-
-  cartItems CartItem[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([userId])
-  @@map("carts")
-}
-
-
-model Payment {
-  id String @id @default(uuid())
-  amount Decimal @db.Decimal(10, 2)
-  status PaymentStatus @default(PENDING)
-  currency String @default("Rp")
-  paymentMethod String?
-  transactionId String?
-  userId String
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  orderId String @unique
-  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  
-  @@index([orderId])
-  @@index([userId])
-  @@index([transactionId])
-  @@map("payments")
 }                                                    
