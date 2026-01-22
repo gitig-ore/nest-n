@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException, ConflictException, BadRequestException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, ConflictException, BadRequestException, ServiceUnavailableException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../prisma/prisma.service';
@@ -16,9 +16,12 @@ export class AuthService {
     const { email, password, nama, role = 'PEMINJAM' } = registerDto;
 
     // Check if user already exists
-    const existingUser = await this.prisma.user.findUnique({
-      where: { email },
-    });
+    let existingUser;
+    try {
+      existingUser = await this.prisma.user.findUnique({ where: { email } });
+    } catch (err: any) {
+      throw new ServiceUnavailableException('Cannot connect to database. Ensure Postgres is running and DATABASE_URL is correct.');
+    }
 
     if (existingUser) {
       throw new ConflictException('Email sudah terdaftar');
@@ -28,14 +31,19 @@ export class AuthService {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     // Create user
-    const user = await this.prisma.user.create({
-      data: {
-        nama,
-        email,
-        password: hashedPassword,
-        role: role as any,
-      },
-    });
+    let user;
+    try {
+      user = await this.prisma.user.create({
+        data: {
+          nama,
+          email,
+          password: hashedPassword,
+          role: role as any,
+        },
+      });
+    } catch (err: any) {
+      throw new ServiceUnavailableException('Cannot connect to database. Ensure Postgres is running and DATABASE_URL is correct.');
+    }
 
     // Generate tokens
     const tokens = this.generateTokens(user.id, user.email);
@@ -56,9 +64,12 @@ export class AuthService {
     const { email, password } = loginDto;
 
     // Find user
-    const user = await this.prisma.user.findUnique({
-      where: { email },
-    });
+    let user;
+    try {
+      user = await this.prisma.user.findUnique({ where: { email } });
+    } catch (err: any) {
+      throw new ServiceUnavailableException('Cannot connect to database. Ensure Postgres is running and DATABASE_URL is correct.');
+    }
 
     if (!user) {
       throw new UnauthorizedException('Email atau password salah');
@@ -92,9 +103,12 @@ export class AuthService {
         secret: process.env.JWT_REFRESH_SECRET || 'refresh-secret-key',
       });
 
-      const user = await this.prisma.user.findUnique({
-        where: { id: payload.sub },
-      });
+      let user;
+      try {
+        user = await this.prisma.user.findUnique({ where: { id: payload.sub } });
+      } catch (err: any) {
+        throw new ServiceUnavailableException('Cannot connect to database. Ensure Postgres is running and DATABASE_URL is correct.');
+      }
 
       if (!user) {
         throw new UnauthorizedException('Invalid refresh token');
@@ -112,16 +126,21 @@ export class AuthService {
   }
 
   async getProfile(userId: string) {
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId },
-      select: {
-        id: true,
-        nama: true,
-        email: true,
-        role: true,
-        createdAt: true,
-      },
-    });
+    let user;
+    try {
+      user = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: {
+          id: true,
+          nama: true,
+          email: true,
+          role: true,
+          createdAt: true,
+        },
+      });
+    } catch (err: any) {
+      throw new ServiceUnavailableException('Cannot connect to database. Ensure Postgres is running and DATABASE_URL is correct.');
+    }
 
     if (!user) {
       throw new UnauthorizedException('User tidak ditemukan');

@@ -68,19 +68,23 @@ export default function DashboardPage() {
           {/* Features Grid */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
             <div className="bg-white rounded-lg shadow p-6">
-              <div className="text-4xl mb-4">🛍️</div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">Berbelanja</h3>
-              <p className="text-gray-600 text-sm">Jelajahi katalog produk kami yang lengkap</p>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">Barang</h3>
+              <p className="text-gray-600 text-sm mb-3">Lihat dan kelola daftar barang</p>
+              <a href="/barang" className="text-blue-600">Buka halaman Barang →</a>
             </div>
             <div className="bg-white rounded-lg shadow p-6">
-              <div className="text-4xl mb-4">📦</div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">Pesanan</h3>
-              <p className="text-gray-600 text-sm">Lihat status pesanan Anda</p>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">Peminjaman</h3>
+              <p className="text-gray-600 text-sm mb-3">Pinjam atau kelola peminjaman</p>
+              <a href="/loan" className="text-blue-600">Buka halaman Loan →</a>
             </div>
             <div className="bg-white rounded-lg shadow p-6">
-              <div className="text-4xl mb-4">⚙️</div>
               <h3 className="text-lg font-semibold text-gray-900 mb-2">Pengaturan</h3>
-              <p className="text-gray-600 text-sm">Kelola akun dan preferensi Anda</p>
+              <p className="text-gray-600 text-sm mb-3">Kelola akun dan preferensi Anda</p>
+              {user?.role === 'ADMIN' ? (
+                <a href="/users" className="text-blue-600">Manajemen Users →</a>
+              ) : (
+                <span className="text-sm text-gray-500">Akses terbatas</span>
+              )}
             </div>
           </div>
         </main>

@@ -1,9 +1,12 @@
-'use client';
+"use client";
 
 import { useState, FormEvent } from 'react';
 import { useAuth } from '@/lib/auth-context';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Input from '@/components/shadcn/Input';
+import Select from '@/components/shadcn/Select';
+import Button from '@/components/shadcn/Button';
 
 export default function RegisterPage() {
   const [nama, setNama] = useState('');
@@ -52,70 +55,36 @@ export default function RegisterPage() {
             <label htmlFor="nama" className="block text-sm font-medium text-gray-700 mb-1">
               Nama Lengkap
             </label>
-            <input
-              id="nama"
-              type="text"
-              value={nama}
-              onChange={(e) => setNama(e.target.value)}
-              required
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="Nama lengkap"
-            />
+            <Input id="nama" type="text" value={nama} onChange={(e: any) => setNama(e.target.value)} required placeholder="Nama lengkap" autoComplete="name" />
           </div>
 
           <div>
             <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
               Email
             </label>
-            <input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="nama@contoh.com"
-            />
+            <Input id="email" type="email" value={email} onChange={(e: any) => setEmail(e.target.value)} required placeholder="nama@contoh.com" autoComplete="email" />
           </div>
 
           <div>
             <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
               Password
             </label>
-            <input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              minLength={6}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="Minimal 6 karakter"
-            />
+            <Input id="password" type="password" value={password} onChange={(e: any) => setPassword(e.target.value)} required minLength={6} placeholder="Minimal 6 karakter" autoComplete="new-password" />
           </div>
 
           <div>
             <label htmlFor="role" className="block text-sm font-medium text-gray-700 mb-1">
               Peran
             </label>
-            <select
-              id="role"
-              value={role}
-              onChange={(e) => setRole(e.target.value as 'PEMINJAM' | 'ADMIN')}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
+            <Select id="role" value={role} onChange={(e: any) => setRole(e.target.value as 'PEMINJAM' | 'ADMIN')}>
               <option value="PEMINJAM">Peminjam</option>
               <option value="ADMIN">Admin</option>
-            </select>
+            </Select>
           </div>
 
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-semibold py-2 px-4 rounded-lg transition duration-200"
-          >
+          <Button type="submit" disabled={isLoading} className="w-full">
             {isLoading ? 'Sedang mendaftar...' : 'Daftar'}
-          </button>
+          </Button>
         </form>
 
         <div className="mt-6 text-center">

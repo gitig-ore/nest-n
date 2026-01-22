@@ -1,3 +1,26 @@
+# Frontend (Next.js) — Quick Start
+
+Prerequisites
+- Node.js 18+ and npm
+- Backend running on http://localhost:3001
+
+Run locally
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Notes
+- The app expects the backend at `http://localhost:3001` by default (see `src/lib/api.ts`).
+- Auth uses JWT access token in localStorage and refresh token in HttpOnly cookie (handled by backend).
+- Pages:
+  - `/auth/login` — login
+  - `/dashboard` — user info
+  - `/barang` — list barang (admin can add/delete)
+  - `/loan` — peminjam: pinjam + view own loans; admin: view all + return
+  - `/users` — admin-only user management (change roles)
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started

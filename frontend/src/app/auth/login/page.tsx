@@ -1,9 +1,11 @@
-'use client';
+"use client";
 
-import { useState, FormEvent } from 'react';
+import React, { useState, FormEvent } from 'react';
 import { useAuth } from '@/lib/auth-context';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Input from '@/components/shadcn/Input';
+import Button from '@/components/shadcn/Button';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -12,8 +14,13 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const { login, isAuthenticated } = useAuth();
   const router = useRouter();
+  
+  // Debug: log auth state
+  console.log('LoginPage render, isAuthenticated=', isAuthenticated);
 
   if (isAuthenticated) {
+    // If already authenticated, redirect to dashboard
+    console.log('Already authenticated, redirecting to /dashboard');
     router.push('/dashboard');
     return null;
   }
@@ -22,6 +29,7 @@ export default function LoginPage() {
     e.preventDefault();
     setError('');
     setIsLoading(true);
+    console.log('handleSubmit called', { email, password });
 
     try {
       await login(email, password);
@@ -33,11 +41,45 @@ export default function LoginPage() {
     }
   };
 
+  // Fallback: direct login caller (no form event) for debugging / overlays
+  const doLogin = async () => {
+    setError('');
+    setIsLoading(true);
+    try {
+      console.log('doLogin invoked');
+      await login(email, password);
+      router.push('/dashboard');
+    } catch (err: any) {
+      setError(err.message || 'Login gagal.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Attach Enter key handler as a fallback to submit — helpful if click is blocked by overlay
+  React.useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Enter') {
+        // only when focused inside our form inputs
+        const active = document.activeElement;
+        if (active && (active.id === 'email' || active.id === 'password')) {
+          e.preventDefault();
+          void doLogin();
+        }
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [email, password]);
+
+  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value);
+  const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value);
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 px-4 py-12">
       <div className="w-full max-w-md rounded-lg bg-white shadow-lg p-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">Login</h1>
-        <p className="text-gray-600 mb-6">Selamat datang kembali</p>
+        <p className="text-gray-600 mb-6">Selamat datang kembali — masukkan akun Anda</p>
 
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
@@ -50,13 +92,13 @@ export default function LoginPage() {
             <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
               Email
             </label>
-            <input
+            <Input
               id="email"
               type="email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
+              autoComplete="email"
               required
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               placeholder="nama@contoh.com"
             />
           </div>
@@ -65,25 +107,30 @@ export default function LoginPage() {
             <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
               Password
             </label>
-            <input
+            <Input
               id="password"
               type="password"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
+              autoComplete="current-password"
               required
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               placeholder="••••••••"
             />
           </div>
 
-          <button
+          <Button
             type="submit"
             disabled={isLoading}
-            className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-semibold py-2 px-4 rounded-lg transition duration-200"
+            className="w-full"
+            onClick={() => console.log('Login button clicked')}
           >
             {isLoading ? 'Sedang login...' : 'Login'}
-          </button>
+          </Button>
         </form>
+
+        <div className="mt-4 text-sm text-gray-500">
+          Contoh: admin@demo / password (jika tersedia di backend)
+        </div>
 
         <div className="mt-6 text-center">
           <p className="text-gray-600 text-sm">

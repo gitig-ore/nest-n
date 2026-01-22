@@ -2,7 +2,8 @@
 
 import axios from 'axios';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+// Default to 3002 if 3001 is busy; set NEXT_PUBLIC_API_URL in your environment to override
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002';
 
 const apiClient = axios.create({
   baseURL: API_URL,
