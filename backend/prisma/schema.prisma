@@ -200,4 +200,4 @@ model Payment {
   @@index([userId])
   @@index([transactionId])
   @@map("payments")
-}
+}                                                    
