@@ -2,7 +2,6 @@ import { Injectable, UnauthorizedException, ConflictException, BadRequestExcepti
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../prisma/prisma.service';
-import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 
 @Injectable()
@@ -12,53 +11,7 @@ export class AuthService {
     private jwtService: JwtService,
   ) {}
 
-  async register(registerDto: RegisterDto) {
-    const { email, password, nama, role = 'PEMINJAM' } = registerDto;
-
-    // Check if user already exists
-    let existingUser;
-    try {
-      existingUser = await this.prisma.user.findUnique({ where: { email } });
-    } catch (err: any) {
-      throw new ServiceUnavailableException('Cannot connect to database. Ensure Postgres is running and DATABASE_URL is correct.');
-    }
-
-    if (existingUser) {
-      throw new ConflictException('Email sudah terdaftar');
-    }
-
-    // Hash password
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    // Create user
-    let user;
-    try {
-      user = await this.prisma.user.create({
-        data: {
-          nama,
-          email,
-          password: hashedPassword,
-          role: role as any,
-        },
-      });
-    } catch (err: any) {
-      throw new ServiceUnavailableException('Cannot connect to database. Ensure Postgres is running and DATABASE_URL is correct.');
-    }
-
-    // Generate tokens
-    const tokens = this.generateTokens(user.id, user.email);
-
-    return {
-      accessToken: tokens.accessToken,
-      refreshToken: tokens.refreshToken,
-      user: {
-        id: user.id,
-        nama: user.nama,
-        email: user.email,
-        role: user.role,
-      },
-    };
-  }
+  
 
   async login(loginDto: LoginDto) {
     const { email, password } = loginDto;
