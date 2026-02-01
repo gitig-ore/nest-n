@@ -2,8 +2,8 @@
 
 import axios from 'axios';
 
-// Default to 3002 if 3001 is busy; set NEXT_PUBLIC_API_URL in your environment to override
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002';
+// Default to backend port 3001; set NEXT_PUBLIC_API_URL in your environment to override
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
 const apiClient = axios.create({
   baseURL: API_URL,

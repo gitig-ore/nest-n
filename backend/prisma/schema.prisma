@@ -1,5 +1,3 @@
-// Loan Management System Schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -7,10 +5,6 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
-
-//////////////////////////////////////////////////////
-// ENUM
-//////////////////////////////////////////////////////
 
 enum Role {
   ADMIN
@@ -23,32 +17,22 @@ enum LoanStatus {
   TERLAMBAT
 }
 
-//////////////////////////////////////////////////////
-// USER
-// Admin & Peminjam berada di satu tabel
-//////////////////////////////////////////////////////
-
 model User {
   id        String   @id @default(uuid())
   nama      String
-  email     String   @unique
+  nisn      String?  @unique   // siswa
+  nip       String?  @unique   // guru
   password  String
   role      Role
 
-  // Relasi
   loansAsPeminjam Loan[] @relation("PeminjamLoan")
   loansAsAdmin    Loan[] @relation("AdminLoan")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  // Index
   @@index([role])
 }
-
-//////////////////////////////////////////////////////
-// BARANG
-//////////////////////////////////////////////////////
 
 model Barang {
   id          String   @id @default(uuid())
@@ -62,36 +46,28 @@ model Barang {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  // Index untuk pencarian
   @@index([namaBarang])
 }
 
-//////////////////////////////////////////////////////
-// LOAN (PEMINJAMAN)
-//////////////////////////////////////////////////////
-
 model Loan {
-  id             String     @id @default(uuid())
-  tanggalPinjam  DateTime   @default(now())
-  tanggalKembali DateTime?
-  status         LoanStatus
+  id              String     @id @default(uuid())
+  tanggalPinjam   DateTime   @default(now())
+  tanggalKembali  DateTime?
+  status          LoanStatus
 
-  // Foreign Keys
   peminjamId String
-  adminId    String
+  adminId    String?
   barangId   String
 
-  // Relations
   peminjam User   @relation("PeminjamLoan", fields: [peminjamId], references: [id])
-  admin    User   @relation("AdminLoan", fields: [adminId], references: [id])
+  admin    User?  @relation("AdminLoan", fields: [adminId], references: [id])
   barang   Barang @relation(fields: [barangId], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  // Index (KRUSIAL)
   @@index([peminjamId])
   @@index([adminId])
   @@index([barangId])
   @@index([status])
-}                                                    
+}

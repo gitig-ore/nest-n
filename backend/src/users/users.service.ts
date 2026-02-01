@@ -15,15 +15,24 @@ export class UsersService {
   // ADMIN: SEMUA USER
   // ===============================
   async findAll() {
-    return this.prisma.user.findMany({
+    const users = await this.prisma.user.findMany({
       select: {
         id: true,
-        email: true,
+        nisn: true,
+        nip: true,
         nama: true,
         role: true,
         createdAt: true,
       },
     });
+
+    return users.map(u => ({
+      id: u.id,
+      email: u.nisn || u.nip || null,
+      nama: u.nama,
+      role: u.role,
+      createdAt: u.createdAt,
+    }));
   }
 
   // ===============================
@@ -38,7 +47,14 @@ export class UsersService {
       throw new NotFoundException('User tidak ditemukan');
     }
 
-    return user;
+    return {
+      id: user.id,
+      nama: user.nama,
+      email: user.nisn || user.nip || null,
+      role: user.role,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+    };
   }
 
   // ===============================

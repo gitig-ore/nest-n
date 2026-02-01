@@ -14,29 +14,36 @@ export class AuthService {
   
 
   async login(loginDto: LoginDto) {
-    const { email, password } = loginDto;
+    const { identifier, password } = loginDto;
 
-    // Find user
+    // Find user by nisn, nip, or nama (allow admin login via nama)
     let user;
     try {
-      user = await this.prisma.user.findUnique({ where: { email } });
+      user = await this.prisma.user.findFirst({
+        where: {
+          OR: [{ nisn: identifier }, { nip: identifier }, { nama: identifier }],
+        },
+      });
     } catch (err: any) {
       throw new ServiceUnavailableException('Cannot connect to database. Ensure Postgres is running and DATABASE_URL is correct.');
     }
 
     if (!user) {
-      throw new UnauthorizedException('Email atau password salah');
+      throw new UnauthorizedException('Identifier atau password salah');
     }
 
     // Verify password
     const isPasswordValid = await bcrypt.compare(password, user.password);
 
     if (!isPasswordValid) {
-      throw new UnauthorizedException('Email atau password salah');
+      throw new UnauthorizedException('Identifier atau password salah');
     }
 
+    // Use identifier (nisn or nip) as compatibility field
+    const userIdentifier = user.nisn || user.nip || '';
+
     // Generate tokens
-    const tokens = this.generateTokens(user.id, user.email);
+    const tokens = this.generateTokens(user.id, userIdentifier);
 
     return {
       accessToken: tokens.accessToken,
@@ -44,7 +51,7 @@ export class AuthService {
       user: {
         id: user.id,
         nama: user.nama,
-        email: user.email,
+        email: userIdentifier,
         role: user.role,
       },
     };
@@ -67,7 +74,7 @@ export class AuthService {
         throw new UnauthorizedException('Invalid refresh token');
       }
 
-      const newTokens = this.generateTokens(user.id, user.email);
+      const newTokens = this.generateTokens(user.id, user.nisn || user.nip || '');
 
       return {
         accessToken: newTokens.accessToken,
@@ -86,7 +93,8 @@ export class AuthService {
         select: {
           id: true,
           nama: true,
-          email: true,
+          nisn: true,
+          nip: true,
           role: true,
           createdAt: true,
         },
@@ -99,12 +107,19 @@ export class AuthService {
       throw new UnauthorizedException('User tidak ditemukan');
     }
 
-    return user;
+    // Map to keep compatibility with frontend expecting `email`
+    return {
+      id: user.id,
+      nama: user.nama,
+      email: user.nisn || user.nip || null,
+      role: user.role,
+      createdAt: user.createdAt,
+    };
   }
 
-  private generateTokens(userId: string, email: string) {
+  private generateTokens(userId: string, identifier: string) {
     const accessToken = this.jwtService.sign(
-      { sub: userId, email },
+      { sub: userId, identifier },
       {
         secret: process.env.JWT_SECRET || 'your-secret-key',
         expiresIn: '15m',
@@ -112,7 +127,7 @@ export class AuthService {
     );
 
     const refreshToken = this.jwtService.sign(
-      { sub: userId, email },
+      { sub: userId, identifier },
       {
         secret: process.env.JWT_REFRESH_SECRET || 'refresh-secret-key',
         expiresIn: '7d',
