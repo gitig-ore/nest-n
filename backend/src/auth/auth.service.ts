@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException, ConflictException, BadRequestException, ServiceUnavailableException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, ConflictException, BadRequestException, ServiceUnavailableException, Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../prisma/prisma.service';
@@ -6,6 +6,8 @@ import { LoginDto } from './dto/login.dto';
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private prisma: PrismaService,
     private jwtService: JwtService,
@@ -15,16 +17,31 @@ export class AuthService {
 
   async login(loginDto: LoginDto) {
     const { identifier, password } = loginDto;
+    const ident = identifier?.toString().trim();
 
     // Find user by nisn, nip, or nama (allow admin login via nama)
     let user;
     try {
+      this.logger.debug(`Login attempt for identifier: "${ident}"`);
+
       user = await this.prisma.user.findFirst({
         where: {
-          OR: [{ nisn: identifier }, { nip: identifier }, { nama: identifier }],
+          OR: [
+            { nisn: ident },
+            { nip: ident },
+            // allow case-insensitive partial matches for nama to make login more forgiving
+            { nama: { contains: ident, mode: 'insensitive' } },
+          ],
         },
       });
+
+      if (!user) {
+        this.logger.debug(`No user found for identifier: "${ident}"`);
+      } else {
+        this.logger.debug(`Found user id=${user.id} nama="${user.nama}" for identifier: "${ident}"`);
+      }
     } catch (err: any) {
+      this.logger.error('Database lookup failed', err?.stack || err?.message || err);
       throw new ServiceUnavailableException('Cannot connect to database. Ensure Postgres is running and DATABASE_URL is correct.');
     }
 
@@ -36,6 +53,8 @@ export class AuthService {
     const isPasswordValid = await bcrypt.compare(password, user.password);
 
     if (!isPasswordValid) {
+      // add debug log to help troubleshooting without logging sensitive data
+      this.logger.debug(`Invalid password for user id=${user.id} ident="${ident}" nama="${user.nama}"`);
       throw new UnauthorizedException('Identifier atau password salah');
     }
 

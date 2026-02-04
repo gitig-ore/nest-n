@@ -50,14 +50,14 @@ export default function LoginPage() {
       return;
     }
 
-    // Validate fields
-    if (loginAs === 'siswa' && !nisn) {
-      setError('Silakan masukkan NISN');
+    // Validate fields. Accept Nama as fallback so user can always login with Nama + Password.
+    if (loginAs === 'siswa' && !nisn && !nama) {
+      setError('Silakan masukkan NISN atau Nama Lengkap');
       return;
     }
 
-    if (loginAs === 'guru' && !nip) {
-      setError('Silakan masukkan NIP');
+    if (loginAs === 'guru' && !nip && !nama) {
+      setError('Silakan masukkan NIP atau Nama Lengkap');
       return;
     }
 
@@ -68,13 +68,24 @@ export default function LoginPage() {
 
     setIsLoading(true);
 
-    // Determine identifier based on selected role
-    const identifier = loginAs === 'siswa' ? nisn : loginAs === 'guru' ? nip : '';
+    // Determine identifier based on selected role, fallback to `nama` if nisn/nip missing
+    const identifier = loginAs === 'siswa' ? (nisn || nama) : loginAs === 'guru' ? (nip || nama) : nama;
 
     try {
       await login(identifier, password);
       router.push('/dashboard');
     } catch (err: any) {
+      // If login failed with 401 and we didn't use `nama` as identifier, try again using `nama`
+      if (err.response?.status === 401 && identifier !== nama && nama) {
+        try {
+          await login(nama, password);
+          router.push('/dashboard');
+          return;
+        } catch (_) {
+          // fall through to show original error below
+        }
+      }
+
       setError(err.response?.data?.message || err.message || 'Login gagal. Silahkan coba lagi.');
     } finally {
       setIsLoading(false);

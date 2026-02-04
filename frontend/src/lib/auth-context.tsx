@@ -1,6 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import apiClient from './api';
 
 export interface User {
@@ -26,6 +27,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  const router = useRouter();
+
   // Check auth status on mount
   useEffect(() => {
     const checkAuth = async () => {
@@ -44,6 +47,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     checkAuth();
   }, []);
+
+  // Listen for logout broadcast (from API interceptor) and navigate client-side
+  useEffect(() => {
+    const onAuthLogout = () => {
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('refreshToken');
+      setUser(null);
+      router.push('/auth/login');
+    };
+
+    window.addEventListener('auth:logout', onAuthLogout);
+    return () => window.removeEventListener('auth:logout', onAuthLogout);
+  }, [router]);
 
   const login = async (identifier: string, password: string) => {
     try {

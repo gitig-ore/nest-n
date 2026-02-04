@@ -29,6 +29,14 @@ apiClient.interceptors.response.use(
       originalRequest._retry = true;
       try {
         const refreshToken = localStorage.getItem('refreshToken');
+        // If there's no refresh token, bail out and broadcast logout
+        if (!refreshToken) {
+          localStorage.removeItem('accessToken');
+          localStorage.removeItem('refreshToken');
+          window.dispatchEvent(new Event('auth:logout'));
+          return Promise.reject(error);
+        }
+
         const response = await axios.post(`${API_URL}/auth/refresh`, {
           refreshToken,
         });
@@ -38,10 +46,12 @@ apiClient.interceptors.response.use(
 
         originalRequest.headers.Authorization = `Bearer ${response.data.accessToken}`;
         return apiClient(originalRequest);
-      } catch {
+      } catch (err) {
+        console.error('Token refresh failed', err);
         localStorage.removeItem('accessToken');
         localStorage.removeItem('refreshToken');
-        window.location.href = '/auth/login';
+        // Broadcast a custom event so the AuthProvider can handle navigation
+        window.dispatchEvent(new Event('auth:logout'));
         return Promise.reject(error);
       }
     }
