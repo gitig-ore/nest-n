@@ -1,6 +1,7 @@
+import { IsString, IsNotEmpty } from 'class-validator';
+
 export class CreateLoanDto {
+  @IsString()
+  @IsNotEmpty()
   barangId: string;
-  adminId: any;
-  peminjamId: any;
-  // Add other properties as needed
 }

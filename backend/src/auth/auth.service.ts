@@ -62,7 +62,7 @@ export class AuthService {
     const userIdentifier = user.nisn || user.nip || '';
 
     // Generate tokens
-    const tokens = this.generateTokens(user.id, userIdentifier);
+    const tokens = this.generateTokens(user.id, userIdentifier, user.role);
 
     return {
       accessToken: tokens.accessToken,
@@ -93,7 +93,7 @@ export class AuthService {
         throw new UnauthorizedException('Invalid refresh token');
       }
 
-      const newTokens = this.generateTokens(user.id, user.nisn || user.nip || '');
+      const newTokens = this.generateTokens(user.id, user.nisn || user.nip || '', user.role);
 
       return {
         accessToken: newTokens.accessToken,
@@ -136,9 +136,9 @@ export class AuthService {
     };
   }
 
-  private generateTokens(userId: string, identifier: string) {
+  private generateTokens(userId: string, identifier: string, role: string) {
     const accessToken = this.jwtService.sign(
-      { sub: userId, identifier },
+      { sub: userId, identifier, role },
       {
         secret: process.env.JWT_SECRET || 'your-secret-key',
         expiresIn: '15m',
@@ -146,7 +146,7 @@ export class AuthService {
     );
 
     const refreshToken = this.jwtService.sign(
-      { sub: userId, identifier },
+      { sub: userId, identifier, role },
       {
         secret: process.env.JWT_REFRESH_SECRET || 'refresh-secret-key',
         expiresIn: '7d',

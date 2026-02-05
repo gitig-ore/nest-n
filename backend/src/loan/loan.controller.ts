@@ -5,6 +5,7 @@ import {
   UseGuards,
   Req,
   Get,
+  Param,
 } from '@nestjs/common';
 import { LoanService } from './loan.service';
 import { CreateLoanDto } from './dto/create-loan.dto';
@@ -24,10 +25,27 @@ export class LoanController {
   @Role('PEMINJAM')
   @Post()
   create(@Req() req, @Body() dto: CreateLoanDto) {
-    return this.loanService.createLoan(
-      req.user.id,
-      dto.barangId,
-    );
+    return this.loanService.createLoan(req.user.id, dto.barangId);
+  }
+
+  // ===============================
+  // ADMIN: VERIFIKASI PEMINJAMAN
+  // ===============================
+  @UseGuards(JwtGuard, RoleGuard)
+  @Role('ADMIN')
+  @Post('verify/:id')
+  verify(@Param('id') id: string, @Req() req) {
+    return this.loanService.verifyLoan(id, req.user.id);
+  }
+
+  // ===============================
+  // ADMIN: TOLAK PEMINJAMAN
+  // ===============================
+  @UseGuards(JwtGuard, RoleGuard)
+  @Role('ADMIN')
+  @Post('reject/:id')
+  reject(@Param('id') id: string) {
+    return this.loanService.rejectLoan(id);
   }
 
   // ===============================
@@ -38,6 +56,36 @@ export class LoanController {
   @Post('return')
   return(@Body() dto: ReturnLoanDto) {
     return this.loanService.returnLoan(dto.loanId);
+  }
+
+  // ===============================
+  // ADMIN: LIHAT PEMINJAMAN TERLAMBAT
+  // ===============================
+  @UseGuards(JwtGuard, RoleGuard)
+  @Role('ADMIN')
+  @Get('overdue')
+  getOverdue() {
+    return this.loanService.getOverdueLoans();
+  }
+
+  // ===============================
+  // ADMIN: LIHAT PEMINJAMAN PENDING
+  // ===============================
+  @UseGuards(JwtGuard, RoleGuard)
+  @Role('ADMIN')
+  @Get('pending')
+  getPending() {
+    return this.loanService.getPendingLoans();
+  }
+
+  // ===============================
+  // ADMIN: LIHAT PEMINJAMAN AKTIF
+  // ===============================
+  @UseGuards(JwtGuard, RoleGuard)
+  @Role('ADMIN')
+  @Get('active')
+  getActive() {
+    return this.loanService.getActiveLoans();
   }
 
   // ===============================
@@ -57,6 +105,6 @@ export class LoanController {
   @Role('ADMIN')
   @Get()
   findAll() {
-    return this.loanService.getAllLoans();
+    return this.loanService.findAll();
   }
 }

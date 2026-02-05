@@ -15,8 +15,7 @@ interface AuthContextType {
   user: User | null;
   isLoading: boolean;
   isAuthenticated: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  register: (nama: string, email: string, password: string, role?: 'PEMINJAM' | 'ADMIN') => Promise<void>;
+  login: (identifier: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
 }
@@ -67,29 +66,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       localStorage.setItem('accessToken', response.data.accessToken);
       localStorage.setItem('refreshToken', response.data.refreshToken);
       setUser(response.data.user);
+
+      // Redirect based on role
+      if (response.data.user.role === 'ADMIN') {
+        router.push('/dashboard');
+      } else {
+        router.push('/peminjam-dashboard');
+      }
     } catch (error: any) {
       throw new Error(error.response?.data?.message || 'Login gagal');
-    }
-  };
-
-  const register = async (
-    nama: string,
-    email: string,
-    password: string,
-    role: 'PEMINJAM' | 'ADMIN' = 'PEMINJAM'
-  ) => {
-    try {
-      const response = await apiClient.post('/auth/register', {
-        nama,
-        email,
-        password,
-        role,
-      });
-      localStorage.setItem('accessToken', response.data.accessToken);
-      localStorage.setItem('refreshToken', response.data.refreshToken);
-      setUser(response.data.user);
-    } catch (error: any) {
-      throw new Error(error.response?.data?.message || 'Register gagal');
     }
   };
 
@@ -123,7 +108,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isLoading,
         isAuthenticated: !!user,
         login,
-        register,
         logout,
         refreshUser,
       }}

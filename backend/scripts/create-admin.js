@@ -1,66 +1,78 @@
+// Script to create an admin user with specific NIP
+// Usage: node scripts/create-admin.js
+
+require('dotenv').config();
 const { PrismaClient } = require('@prisma/client');
+const { PrismaPg } = require('@prisma/adapter-pg');
+const { Pool } = require('pg');
 const bcrypt = require('bcryptjs');
 
-function parseArgs() {
-  const args = {};
-  const argv = process.argv.slice(2);
-  for (let i = 0; i < argv.length; i++) {
-    const a = argv[i];
-    if (a.startsWith('--')) {
-      const key = a.slice(2);
-      const val = argv[i + 1] && !argv[i + 1].startsWith('--') ? argv[++i] : true;
-      args[key] = val;
-    }
-  }
-  return args;
+const databaseUrl = process.env.DATABASE_URL;
+if (!databaseUrl) {
+  console.error('DATABASE_URL is not set');
+  process.exit(1);
 }
 
-(async () => {
-  const args = parseArgs();
-  const nama = args.nama || args.name;
-  const nisn = args.nisn;
-  const nip = args.nip;
-  const password = args.password || process.env.PASSWORD || 'password';
+const pool = new Pool({
+  connectionString: databaseUrl,
+  max: 20,
+  min: 2,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 10000,
+});
 
-  if (!nama) {
-    console.error('Usage: node create-admin.js --nama "Admin Name" [--nisn 123] [--nip 456] [--password secret]');
-    process.exit(1);
+const adapter = new PrismaPg(pool);
+const prisma = new PrismaClient({ adapter });
+
+async function main() {
+  const adminNip = '1234567890';
+  const adminPassword = 'admin123';
+  const adminName = 'Admin IGPP';
+
+  // Check if admin with this NIP already exists
+  let existingAdmin = await prisma.user.findUnique({
+    where: {
+      nip: adminNip,
+    },
+  });
+
+  if (existingAdmin) {
+    console.log('Admin user already exists with this NIP:');
+    console.log('  ID:', existingAdmin.id);
+    console.log('  Nama:', existingAdmin.nama);
+    console.log('  NIP:', existingAdmin.nip);
+    console.log('  Role:', existingAdmin.role);
+  } else {
+    // Create admin user
+    const hashedPassword = await bcrypt.hash(adminPassword, 10);
+    
+    const admin = await prisma.user.create({
+      data: {
+        nama: adminName,
+        nip: adminNip,
+        password: hashedPassword,
+        role: 'ADMIN',
+      },
+    });
+
+    console.log('Admin user created successfully!');
+    console.log('  ID:', admin.id);
+    console.log('  Nama:', admin.nama);
+    console.log('  NIP:', admin.nip);
+    console.log('  Role:', admin.role);
   }
 
-  const prisma = new PrismaClient();
-  try {
-    const identTrim = (nisn || nip || nama).toString().trim();
+  console.log('\n=== LOGIN CREDENTIALS ===');
+  console.log('Identifier (NIP): ' + adminNip);
+  console.log('Password: ' + adminPassword);
+  console.log('=======================\n');
+}
 
-    let user;
-    if (nisn) {
-      user = await prisma.user.findUnique({ where: { nisn: nisn } }).catch(() => null);
-    } else if (nip) {
-      user = await prisma.user.findUnique({ where: { nip: nip } }).catch(() => null);
-    } else {
-      user = await prisma.user.findFirst({ where: { nama: { contains: nama, mode: 'insensitive' } } }).catch(() => null);
-    }
-
-    const hashed = await bcrypt.hash(password, 10);
-
-    if (user) {
-      await prisma.user.update({ where: { id: user.id }, data: { password: hashed, role: 'ADMIN' } });
-      console.log(`Updated existing user id=${user.id} nama="${user.nama}" to role=ADMIN and set new password.`);
-    } else {
-      const created = await prisma.user.create({
-        data: {
-          nama: nama,
-          nisn: nisn || null,
-          nip: nip || null,
-          password: hashed,
-          role: 'ADMIN',
-        },
-      });
-      console.log(`Created ADMIN user id=${created.id} nama="${created.nama}"` + (nisn ? ` nisn=${nisn}` : '') + (nip ? ` nip=${nip}` : '') );
-    }
-  } catch (err) {
-    console.error('Error:', err?.stack || err?.message || err);
+main()
+  .catch((e) => {
+    console.error(e);
     process.exit(1);
-  } finally {
+  })
+  .finally(async () => {
     await prisma.$disconnect();
-  }
-})();
+  });

@@ -1,9 +1,8 @@
 "use client";
 
-import React, { useState, FormEvent } from 'react';
+import React, { useState, FormEvent, useEffect } from 'react';
 import { useAuth } from '@/lib/auth-context';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import Input from '@/components/shadcn/Input';
 import Button from '@/components/shadcn/Button';
 
@@ -19,24 +18,14 @@ export default function LoginPage() {
   const { login, isAuthenticated } = useAuth();
   const router = useRouter();
 
-  const nisnRef = React.useRef<HTMLInputElement | null>(null);
-  const nipRef = React.useRef<HTMLInputElement | null>(null);
-  const namaRef = React.useRef<HTMLInputElement | null>(null);
-  const passwordRef = React.useRef<HTMLInputElement | null>(null);
-
-  // autofocus first field when role selected
-  React.useEffect(() => {
-    if (loginAs === 'siswa') {
-      nisnRef.current?.focus();
-    } else if (loginAs === 'guru') {
-      nipRef.current?.focus();
-    } else if (loginAs === 'lainnya') {
-      namaRef.current?.focus();
+  // Redirect to dashboard when authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      router.push('/dashboard');
     }
-  }, [loginAs]);
+  }, [isAuthenticated, router]);
 
   if (isAuthenticated) {
-    router.push('/dashboard');
     return null;
   }
 
@@ -50,14 +39,28 @@ export default function LoginPage() {
       return;
     }
 
-    // Validate fields. Accept Nama as fallback so user can always login with Nama + Password.
-    if (loginAs === 'siswa' && !nisn && !nama) {
-      setError('Silakan masukkan NISN atau Nama Lengkap');
+    // For admin login with NIP
+    if (loginAs === 'guru' && nip === '1234567890' && nama === 'Admin IGPP') {
+      setIsLoading(true);
+      try {
+        await login(nip, password);
+        router.push('/dashboard');
+      } catch (err: any) {
+        setError(err.response?.data?.message || err.message || 'Login gagal');
+      } finally {
+        setIsLoading(false);
+      }
       return;
     }
 
-    if (loginAs === 'guru' && !nip && !nama) {
-      setError('Silakan masukkan NIP atau Nama Lengkap');
+    // Validate fields
+    if (loginAs === 'siswa' && !nisn) {
+      setError('Silakan masukkan NISN');
+      return;
+    }
+
+    if (loginAs === 'guru' && !nip) {
+      setError('Silakan masukkan NIP');
       return;
     }
 
@@ -66,50 +69,25 @@ export default function LoginPage() {
       return;
     }
 
+    if (!password) {
+      setError('Silakan masukkan Password');
+      return;
+    }
+
     setIsLoading(true);
 
-    // Determine identifier based on selected role, fallback to `nama` if nisn/nip missing
-    const identifier = loginAs === 'siswa' ? (nisn || nama) : loginAs === 'guru' ? (nip || nama) : nama;
+    // Determine identifier based on selected role
+    const identifier = loginAs === 'siswa' ? nisn : loginAs === 'guru' ? nip : nama;
 
     try {
       await login(identifier, password);
       router.push('/dashboard');
     } catch (err: any) {
-      // If login failed with 401 and we didn't use `nama` as identifier, try again using `nama`
-      if (err.response?.status === 401 && identifier !== nama && nama) {
-        try {
-          await login(nama, password);
-          router.push('/dashboard');
-          return;
-        } catch (_) {
-          // fall through to show original error below
-        }
-      }
-
-      setError(err.response?.data?.message || err.message || 'Login gagal. Silahkan coba lagi.');
+      setError(err.response?.data?.message || err.message || 'Login gagal. Silakan coba lagi.');
     } finally {
       setIsLoading(false);
     }
   };
-
-  React.useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Enter') {
-        const active = document.activeElement as HTMLElement | null;
-        if (!active) return;
-        if (
-          (loginAs === 'siswa' && (active.id === 'nisn' || active.id === 'nama' || active.id === 'password')) ||
-          (loginAs === 'guru' && (active.id === 'nip' || active.id === 'nama' || active.id === 'password')) ||
-          (loginAs === 'lainnya' && (active.id === 'nama' || active.id === 'password'))
-        ) {
-          e.preventDefault();
-          (document.getElementById('login-form') as HTMLFormElement | null)?.requestSubmit();
-        }
-      }
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [loginAs, nisn, nip, password, nama]);
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-[#0b2140] px-4 py-12">
@@ -121,7 +99,6 @@ export default function LoginPage() {
           <span className="w-3 h-3 rounded-full bg-green-400 inline-block" />
         </div>
 
-        
         <div className="w-16 h-16 bg-[#0b2140] rounded-md mx-auto mb-4 flex items-center justify-center overflow-hidden">
           <img src="/igpp.png" alt="Logo" className="w-15 h-15 object-contain" />
         </div>
@@ -133,25 +110,25 @@ export default function LoginPage() {
         <div className="flex gap-3 justify-center mb-6">
           <button
             className={`px-4 py-2 rounded-full text-sm font-medium ${loginAs === 'siswa' ? 'bg-[#0b2140] text-white' : 'bg-gray-100 text-gray-700 '}`}
-            onClick={() => setLoginAs('siswa')}
+            onClick={() => { setLoginAs('siswa'); setNisn(''); setNip(''); setNama(''); setPassword(''); }}
             type="button"
           >
             Siswa
           </button>
           <button
             className={`px-4 py-2 rounded-full text-sm font-medium ${loginAs === 'guru' ? 'bg-[#0b2140] text-white' : 'bg-gray-100 text-gray-700'}`}
-            onClick={() => setLoginAs('guru')}
+            onClick={() => { setLoginAs('guru'); setNisn(''); setNip(''); setNama(''); setPassword(''); }}
             type="button"
           >
             Guru
           </button>
-            <button
+          <button
             className={`px-4 py-2 rounded-full text-sm font-medium ${loginAs === 'lainnya' ? 'bg-[#0b2140] text-white' : 'bg-gray-100 text-gray-700'}`}
-            onClick={() => setLoginAs('lainnya')}
+            onClick={() => { setLoginAs('lainnya'); setNisn(''); setNip(''); setNama(''); setPassword(''); }}
             type="button"
-            >
+          >
             Lainnya
-            </button>
+          </button>
         </div>
 
         {error && (
@@ -163,24 +140,21 @@ export default function LoginPage() {
         {!loginAs ? (
           <div className="mb-6 text-center text-sm text-gray-600">
             <div>Silakan pilih login sebagai Siswa, Guru, atau Lainnya terlebih dahulu</div>
-            <div className="mt-2">
-            
-            </div>
           </div>
         ) : (
-          <form id="login-form" onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4">
             {loginAs === 'siswa' && (
               <div>
                 <label htmlFor="nisn" className="block text-sm font-medium text-black mb-1">NISN</label>
                 <Input
                   id="nisn"
-                  ref={nisnRef}
                   type="text"
                   value={nisn}
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNisn(e.target.value)}
                   required
-                  placeholder=""
+                  placeholder="Masukkan NISN"
                   className="py-3 rounded-xl bg-gray-50 text-black"
+                  autoComplete="off"
                 />
               </div>
             )}
@@ -190,29 +164,28 @@ export default function LoginPage() {
                 <label htmlFor="nip" className="block text-sm font-medium text-black mb-1">NIP</label>
                 <Input
                   id="nip"
-                  ref={nipRef}
                   type="text"
                   value={nip}
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNip(e.target.value)}
                   required
-                  placeholder=""
+                  placeholder="Masukkan NIP"
                   className="py-3 rounded-xl bg-gray-50 text-black"
+                  autoComplete="off"
                 />
               </div>
             )}
 
-            {/* Nama Lengkap shown for all roles when role is selected */}
             <div>
               <label htmlFor="nama" className="block text-sm font-medium text-black mb-1">Nama Lengkap</label>
               <Input
                 id="nama"
-                ref={namaRef}
                 type="text"
                 value={nama}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNama(e.target.value)}
                 required
-                placeholder=""
+                placeholder="Masukkan Nama Lengkap"
                 className="py-3 rounded-xl bg-gray-50 text-black"
+                autoComplete="off"
               />
             </div>
 
@@ -220,27 +193,25 @@ export default function LoginPage() {
               <label htmlFor="password" className="block text-sm font-medium text-black mb-1">Password</label>
               <Input
                 id="password"
-                ref={passwordRef}
                 type="password"
                 value={password}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
                 required
-                placeholder=""
+                placeholder="Masukkan Password"
                 className="py-3 rounded-xl bg-gray-50 text-black"
+                autoComplete="current-password"
               />
             </div>
 
             <Button
               type="submit"
-              disabled={!loginAs || !nama || (loginAs === 'siswa' && !nisn) || (loginAs === 'guru' && !nip) || isLoading}
-              className={`w-full bg-(--submitions)! text-black! font-semibold py-3 rounded-2xl shadow-lg ${isLoading ? 'opacity-60' : ''}`}
+              disabled={isLoading}
+              className="w-full bg-[#0b2140] text-white font-semibold py-3 rounded-2xl shadow-lg hover:bg-[#0a1d38] transition-colors"
             >
               {isLoading ? 'Sedang masuk...' : 'Masuk'}
             </Button>
           </form>
         )}
-
-       
       </div>
     </div>
   );

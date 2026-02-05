@@ -6,68 +6,62 @@ datasource db {
   provider = "postgresql"
 }
 
-enum Role {
-  ADMIN
-  PEMINJAM
-}
-
-enum LoanStatus {
-  DIPINJAM
-  DIKEMBALIKAN
-  TERLAMBAT
-}
-
 model User {
-  id        String   @id @default(uuid())
-  nama      String
-  nisn      String?  @unique   // siswa
-  nip       String?  @unique   // guru
-  password  String
-  role      Role
-
-  loansAsPeminjam Loan[] @relation("PeminjamLoan")
-  loansAsAdmin    Loan[] @relation("AdminLoan")
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id              String   @id @default(uuid())
+  nama            String
+  password        String
+  role            Role
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  nip             String?  @unique
+  nisn            String?  @unique
+  loansAsAdmin    Loan[]   @relation("AdminLoan")
+  loansAsPeminjam Loan[]   @relation("PeminjamLoan")
 
   @@index([role])
 }
 
 model Barang {
-  id          String   @id @default(uuid())
-  kodeBarang  String   @unique
-  namaBarang  String
-  kondisi     String
-  stok        Int
-
-  loans       Loan[]
-
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id         String   @id @default(uuid())
+  kodeBarang String   @unique
+  namaBarang String
+  kondisi    String
+  stok       Int
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  loans      Loan[]
 
   @@index([namaBarang])
 }
 
 model Loan {
-  id              String     @id @default(uuid())
-  tanggalPinjam   DateTime   @default(now())
-  tanggalKembali  DateTime?
-  status          LoanStatus
-
-  peminjamId String
-  adminId    String?
-  barangId   String
-
-  peminjam User   @relation("PeminjamLoan", fields: [peminjamId], references: [id])
-  admin    User?  @relation("AdminLoan", fields: [adminId], references: [id])
-  barang   Barang @relation(fields: [barangId], references: [id])
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id             String     @id @default(uuid())
+  tanggalPinjam   DateTime?
+  tanggalKembali DateTime?
+  status         LoanStatus
+  peminjamId     String
+  adminId        String?
+  barangId       String
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+  admin          User?      @relation("AdminLoan", fields: [adminId], references: [id])
+  barang         Barang     @relation(fields: [barangId], references: [id])
+  peminjam       User       @relation("PeminjamLoan", fields: [peminjamId], references: [id])
 
   @@index([peminjamId])
   @@index([adminId])
   @@index([barangId])
   @@index([status])
+}
+
+enum Role {
+  ADMIN
+  SISWA
+}
+
+enum LoanStatus {
+  PENDING
+  DIPINJAM
+  DIKEMBALIKAN
+  TERLAMBAT
 }

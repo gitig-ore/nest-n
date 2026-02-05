@@ -6,7 +6,7 @@
   --submitions: #fca311;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
+  --font-sans: var(--font-jakarta-sans);
   --font-mono: var(--font-geist-mono);
   
 }
@@ -21,5 +21,5 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: 'Jakarta Sans', sans-serif;
+  font-family: var(--font-jakarta-sans), sans-serif;
 }

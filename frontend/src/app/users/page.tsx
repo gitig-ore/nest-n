@@ -1,110 +1,183 @@
 "use client";
 
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ProtectedRoute } from '@/lib/protected-route';
 import { useAuth } from '@/lib/auth-context';
+import AdminLayout from '@/components/AdminLayout';
 import apiClient from '@/lib/api';
-import { Table, THead, TBody, TR, TH, TD } from '@/components/shadcn/Table';
-import Select from '@/components/shadcn/Select';
-import Button from '@/components/shadcn/Button';
-import Card from '@/components/shadcn/Card';
 
 type User = {
   id: string;
-  email: string;
   nama: string;
+  email: string;
   role: 'ADMIN' | 'PEMINJAM';
+  createdAt: string;
 };
 
 export default function UsersPage() {
   const { user } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     fetchUsers();
   }, []);
 
   const fetchUsers = async () => {
-    setLoading(true);
     try {
       const res = await apiClient.get('/users');
       setUsers(res.data || []);
-    } catch (err) {
-      console.error(err);
-      setUsers([]);
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Gagal memuat users');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleRoleChange = async (id: string, role: User['role']) => {
+  const handleDelete = async (id: string) => {
+    if (!confirm('Yakin ingin menghapus user ini?')) return;
     try {
-      await apiClient.patch(`/users/${id}`, { role });
+      await apiClient.delete(`/users/${id}`);
       fetchUsers();
-    } catch (err) {
-      console.error(err);
-      alert('Gagal mengubah role');
+    } catch (err: any) {
+      alert(err.response?.data?.message || 'Gagal menghapus user');
     }
   };
 
-  if (user?.role !== 'ADMIN') {
+  const getRoleBadge = (role: string) => {
+    const colors = {
+      ADMIN: 'bg-purple-100 text-purple-600',
+      PEMINJAM: 'bg-blue-100 text-blue-600',
+    };
     return (
-      <ProtectedRoute>
-        <div className="min-h-screen flex items-center justify-center">
-          <div className="bg-white p-6 rounded shadow">Hanya admin yang dapat mengakses halaman ini.</div>
-        </div>
-      </ProtectedRoute>
+      <span className={`px-3 py-1 rounded-full text-xs font-medium ${colors[role as keyof typeof colors]}`}>
+        {role === 'ADMIN' ? 'Administrator' : 'Peminjam'}
+      </span>
     );
-  }
+  };
+
+  const getInitials = (nama: string) => {
+    return nama
+      .split(' ')
+      .map((n) => n.charAt(0))
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+  };
 
   return (
     <ProtectedRoute>
-      <div className="min-h-screen bg-gray-50">
-        <main className="max-w-5xl mx-auto px-4 py-8">
-          <div className="flex justify-between items-center mb-6">
-            <h1 className="text-2xl font-bold">Manajemen Users</h1>
-            <div className="text-sm text-gray-600">Role: {user?.role}</div>
+      <AdminLayout>
+        {/* Page Header */}
+        <div className="mb-6 flex justify-between items-center">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Manajemen Users</h1>
+            <p className="text-gray-500 mt-1">Kelola akun pengguna sistem</p>
           </div>
+        </div>
 
-          <Card>
-            <h2 className="font-semibold mb-3">Daftar Users</h2>
-            {loading ? (
-              <p>Memuat...</p>
-            ) : (
-              <Table>
-                <THead>
-                  <TR>
-                    <TH>Email</TH>
-                    <TH>Nama</TH>
-                    <TH>Role</TH>
-                    <TH>Aksi</TH>
-                  </TR>
-                </THead>
-                <TBody>
-                  {users.map((u) => (
-                    <TR key={u.id}>
-                      <TD>{u.email}</TD>
-                      <TD>{u.nama}</TD>
-                      <TD>{u.role}</TD>
-                      <TD>
-                        <Select
-                          value={u.role}
-                          onChange={(e: any) => handleRoleChange(u.id, e.target.value as User['role'])}
-                          className="w-40 mr-2"
-                        >
-                          <option value="PEMINJAM">PEMINJAM</option>
-                          <option value="ADMIN">ADMIN</option>
-                        </Select>
-                      </TD>
-                    </TR>
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg mb-6">
+            {error}
+          </div>
+        )}
+
+        {/* Users Table */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center">
+            <h2 className="text-lg font-semibold text-gray-900">Daftar Users</h2>
+            <button
+              onClick={fetchUsers}
+              className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm font-medium"
+            >
+              Refresh
+            </button>
+          </div>
+          {loading ? (
+            <div className="p-8 text-center">
+              <div className="animate-spin inline-block w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full mb-4"></div>
+              <p className="text-gray-500">Memuat data...</p>
+            </div>
+          ) : users.length === 0 ? (
+            <div className="p-8 text-center text-gray-500">
+              <p>Tidak ada data users</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                      No
+                    </th>
+                    <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                      User
+                    </th>
+                    <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                      Email/NISN/NIP
+                    </th>
+                    <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                      Role
+                    </th>
+                    <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                      Terdaftar
+                    </th>
+                    <th className="text-right px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                      Aksi
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {users.map((u, index) => (
+                    <tr key={u.id} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-6 py-4">
+                        <span className="text-sm text-gray-600">{index + 1}</span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center">
+                          <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
+                            <span className="text-sm font-semibold text-blue-600">
+                              {getInitials(u.nama)}
+                            </span>
+                          </div>
+                          <div className="ml-3">
+                            <p className="text-sm font-medium text-gray-900">{u.nama}</p>
+                            <p className="text-xs text-gray-500 font-mono">{u.id.slice(0, 8)}...</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="text-sm text-gray-600">{u.email || '-'}</span>
+                      </td>
+                      <td className="px-6 py-4">{getRoleBadge(u.role)}</td>
+                      <td className="px-6 py-4">
+                        <span className="text-sm text-gray-600">
+                          {new Date(u.createdAt).toLocaleDateString('id-ID')}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        {u.id !== user?.id && (
+                          <button
+                            onClick={() => handleDelete(u.id)}
+                            className="px-3 py-1 text-red-500 hover:text-red-600 text-sm font-medium transition-colors"
+                          >
+                            Hapus
+                          </button>
+                        )}
+                      </td>
+                    </tr>
                   ))}
-                </TBody>
-              </Table>
-            )}
-          </Card>
-        </main>
-      </div>
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+
+        <div className="mt-4 text-sm text-gray-500 text-center">
+          Total Users: {users.length}
+        </div>
+      </AdminLayout>
     </ProtectedRoute>
   );
 }
