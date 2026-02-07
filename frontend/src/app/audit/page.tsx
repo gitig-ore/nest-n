@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import AdminLayout from "@/components/AdminLayout";
 import apiClient from "@/lib/api";
+import LoadingSpinner from "@/components/LoadingSpinner";
 
 interface AuditLog {
   id: string;
@@ -72,11 +73,7 @@ export default function AuditPage() {
       <div className="p-6">
         <h1 className="text-2xl font-bold mb-6">Riwayat Audit</h1>
 
-        {loading && (
-          <div className="text-center py-8">
-            <p className="text-gray-500">Memuat data...</p>
-          </div>
-        )}
+        {loading && <LoadingSpinner message="Memuat data audit..." />}
 
         {error && (
           <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
@@ -86,6 +83,11 @@ export default function AuditPage() {
 
         {!loading && !error && auditLogs.length === 0 && (
           <div className="text-center py-8">
+            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+            </div>
             <p className="text-gray-500">Belum ada riwayat audit</p>
           </div>
         )}

@@ -8,6 +8,8 @@ import apiClient from '@/lib/api';
 import Button from '@/components/shadcn/Button';
 import Select from '@/components/shadcn/Select';
 import Card from '@/components/shadcn/Card';
+import { toast } from 'sonner';
+import LoadingSpinner from '@/components/LoadingSpinner';
 
 type Loan = {
   id: string;
@@ -107,9 +109,9 @@ export default function LoanPage() {
       await apiClient.post('/loan', { barangId });
       setBarangId('');
       fetchLoans();
-      alert('Permintaan pinjaman berhasil dikirim. Tunggu verifikasi admin.');
+      toast.success('Permintaan pinjaman berhasil dikirim. Tunggu verifikasi admin.');
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Gagal meminjam barang');
+      toast.error(err.response?.data?.message || 'Gagal meminjam barang');
     } finally {
       setLoading(false);
     }
@@ -120,8 +122,9 @@ export default function LoanPage() {
     try {
       await apiClient.post(`/loan/verify/${loanId}`);
       fetchLoans();
+      toast.success('Pengajuan berhasil diverifikasi');
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Gagal verifikasi');
+      toast.error(err.response?.data?.message || 'Gagal verifikasi');
     }
   };
 
@@ -130,8 +133,9 @@ export default function LoanPage() {
     try {
       await apiClient.post(`/loan/reject/${loanId}`);
       fetchLoans();
+      toast.success('Pengajuan ditolak');
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Gagal menolak');
+      toast.error(err.response?.data?.message || 'Gagal menolak');
     }
   };
 
@@ -154,8 +158,9 @@ export default function LoanPage() {
       setShowReturnModal(false);
       setSelectedLoan(null);
       fetchLoans();
+      toast.success('Pengembalian berhasil dicatat');
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Gagal mengembalikan');
+      toast.error(err.response?.data?.message || 'Gagal mengembalikan');
     }
   };
 
@@ -271,12 +276,14 @@ export default function LoanPage() {
             </div>
           )}
           {loading ? (
-            <div className="p-8 text-center">
-              <div className="animate-spin inline-block w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full mb-4"></div>
-              <p className="text-gray-500">Memuat data...</p>
-            </div>
+            <LoadingSpinner message="Memuat data peminjaman..." />
           ) : loans.length === 0 ? (
             <div className="p-8 text-center text-gray-500">
+              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+              </div>
               <p>Tidak ada data peminjaman</p>
             </div>
           ) : (

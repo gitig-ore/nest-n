@@ -2,7 +2,7 @@ import { AuthProvider } from '@/lib/auth-context';
 import type { Metadata } from 'next';
 import { Geist, Geist_Mono, Plus_Jakarta_Sans } from 'next/font/google';
 import './globals.css';
-import Nav from '@/components/Nav';
+import ToastProvider from '@/components/ToastProvider';
 
 const plusJakartaSans = Plus_Jakarta_Sans({
   variable: '--font-jakarta-sans',
@@ -33,7 +33,7 @@ export default function RootLayout({
     <html lang="id">
       <body className={`${plusJakartaSans.variable} ${geistSans.variable} ${geistMono.variable} antialiased font-jakarta-sans`}>
         <AuthProvider>
-        
+          <ToastProvider />
           {children}
         </AuthProvider>
       </body>

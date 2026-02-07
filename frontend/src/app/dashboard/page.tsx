@@ -6,6 +6,7 @@ import { useAuth } from '@/lib/auth-context';
 import { ProtectedRoute } from '@/lib/protected-route';
 import AdminLayout from '@/components/AdminLayout';
 import apiClient from '@/lib/api';
+import LoadingSpinner from '@/components/LoadingSpinner';
 
 type Stats = {
   totalUsers: number;
@@ -70,10 +71,7 @@ export default function DashboardPage() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin inline-block w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full mb-4"></div>
-          <p className="text-gray-500">Memuat...</p>
-        </div>
+        <LoadingSpinner message="Memuat..." />
       </div>
     );
   }

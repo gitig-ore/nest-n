@@ -5,6 +5,8 @@ import { ProtectedRoute } from '@/lib/protected-route';
 import { useAuth } from '@/lib/auth-context';
 import AdminLayout from '@/components/AdminLayout';
 import apiClient from '@/lib/api';
+import { toast } from 'sonner';
+import LoadingSpinner from '@/components/LoadingSpinner';
 
 type User = {
   id: string;
@@ -40,8 +42,9 @@ export default function UsersPage() {
     try {
       await apiClient.delete(`/users/${id}`);
       fetchUsers();
+      toast.success('User berhasil dihapus');
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Gagal menghapus user');
+      toast.error(err.response?.data?.message || 'Gagal menghapus user');
     }
   };
 
@@ -95,12 +98,14 @@ export default function UsersPage() {
             </button>
           </div>
           {loading ? (
-            <div className="p-8 text-center">
-              <div className="animate-spin inline-block w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full mb-4"></div>
-              <p className="text-gray-500">Memuat data...</p>
-            </div>
+            <LoadingSpinner message="Memuat data users..." />
           ) : users.length === 0 ? (
             <div className="p-8 text-center text-gray-500">
+              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                </svg>
+              </div>
               <p>Tidak ada data users</p>
             </div>
           ) : (
