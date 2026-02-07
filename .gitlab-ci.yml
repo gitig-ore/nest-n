@@ -1,0 +1,70 @@
+# GitLab CI/CD Configuration for Vercel Deployment
+# File: .gitlab-ci.yml
+
+stages:
+  - deploy
+
+variables:
+  # Vercel Token (set in GitLab CI/CD Variables)
+  VERCEL_TOKEN: ${VERCEL_TOKEN}
+  VERCEL_ORG_ID: ${VERCEL_ORG_ID}
+  VERCEL_PROJECT_ID: ${VERCEL_PROJECT_ID}
+
+# Cache node_modules for faster builds
+.cache: &cache
+  cache:
+    key: ${CI_COMMIT_REF_SLUG}
+    paths:
+      - backend/node_modules/
+      - frontend/node_modules/
+      - .vercel/
+
+# Deploy Backend
+deploy_backend:
+  stage: deploy
+  image: node:18-alpine
+  <<: *cache
+  script:
+    - echo "Deploying Backend to Vercel..."
+    - cd backend
+    - npm ci --only=production
+    - npx vercel --token=$VERCEL_TOKEN --prod --yes
+  environment:
+    name: production/backend
+    url: https://igpp-backend.vercel.app
+  only:
+    - main
+    - master
+
+# Deploy Frontend
+deploy_frontend:
+  stage: deploy
+  image: node:18-alpine
+  <<: *cache
+  script:
+    - echo "Deploying Frontend to Vercel..."
+    - cd frontend
+    - npm ci --only=production
+    - npx vercel --token=$VERCEL_TOKEN --prod --yes
+  environment:
+    name: production/frontend
+    url: https://igpp-frontend.vercel.app
+  only:
+    - main
+    - master
+
+# Deploy on Merge Request (Preview)
+deploy_preview:
+  stage: deploy
+  image: node:18-alpine
+  <<: *cache
+  script:
+    - echo "Deploying Preview to Vercel..."
+    - cd frontend
+    - npm ci
+    - npx vercel --token=$VERCEL_TOKEN
+  environment:
+    name: preview
+    url: ${VERCEL_URL}
+  only:
+    - merge_requests
