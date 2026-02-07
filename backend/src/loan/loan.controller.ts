@@ -21,6 +21,9 @@ export class LoanController {
   // ===============================
   // PEMINJAM: AJUKAN PEMINJAMAN
   // ===============================
+  // Domain Rules Enforced:
+  // - Backend validation for active loan (1 peminjaman aktif)
+  // - Backend validation for late loan (tidak boleh ajukan baru)
   @UseGuards(JwtGuard, RoleGuard)
   @Role('PEMINJAM')
   @Post()
@@ -31,6 +34,9 @@ export class LoanController {
   // ===============================
   // ADMIN: VERIFIKASI PEMINJAMAN
   // ===============================
+  // Domain Rules:
+  // - tanggalPinjam = now (tidak user input)
+  // - tanggalJatuhTempo = now + 24 jam (tidak user input)
   @UseGuards(JwtGuard, RoleGuard)
   @Role('ADMIN')
   @Post('verify/:id')
@@ -39,13 +45,23 @@ export class LoanController {
   }
 
   // ===============================
+  // ADMIN: BARANG TELAH DIAMBIL (DISETUJUI -> DIPINJAM)
+  // ===============================
+  @UseGuards(JwtGuard, RoleGuard)
+  @Role('ADMIN')
+  @Post('borrow/:id')
+  markAsBorrowed(@Param('id') id: string, @Req() req) {
+    return this.loanService.markAsBorrowed(id, req.user.id);
+  }
+
+  // ===============================
   // ADMIN: TOLAK PEMINJAMAN
   // ===============================
   @UseGuards(JwtGuard, RoleGuard)
   @Role('ADMIN')
   @Post('reject/:id')
-  reject(@Param('id') id: string) {
-    return this.loanService.rejectLoan(id);
+  reject(@Param('id') id: string, @Req() req) {
+    return this.loanService.rejectLoan(id, req.user.id);
   }
 
   // ===============================
@@ -54,8 +70,8 @@ export class LoanController {
   @UseGuards(JwtGuard, RoleGuard)
   @Role('ADMIN')
   @Post('return')
-  return(@Body() dto: ReturnLoanDto) {
-    return this.loanService.returnLoan(dto.loanId);
+  return(@Body() dto: ReturnLoanDto, @Req() req) {
+    return this.loanService.returnLoan(dto.loanId, req.user.id, dto.reason);
   }
 
   // ===============================

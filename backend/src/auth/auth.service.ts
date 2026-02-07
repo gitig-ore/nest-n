@@ -137,10 +137,29 @@ export class AuthService {
   }
 
   private generateTokens(userId: string, identifier: string, role: string) {
+    const isProduction = process.env.NODE_ENV === 'production';
+
+    // Validate required environment variables in production
+    if (!process.env.JWT_SECRET) {
+      if (isProduction) {
+        throw new Error('JWT_SECRET environment variable is required in production');
+      }
+      // In development, use a safe default that logs a warning
+      this.logger.warn('JWT_SECRET not set, using a default for development only. This should NOT be used in production!');
+    }
+
+    if (!process.env.JWT_REFRESH_SECRET) {
+      if (isProduction) {
+        throw new Error('JWT_REFRESH_SECRET environment variable is required in production');
+      }
+      // In development, use a safe default that logs a warning
+      this.logger.warn('JWT_REFRESH_SECRET not set, using a default for development only. This should NOT be used in production!');
+    }
+
     const accessToken = this.jwtService.sign(
       { sub: userId, identifier, role },
       {
-        secret: process.env.JWT_SECRET || 'your-secret-key',
+        secret: process.env.JWT_SECRET,
         expiresIn: '15m',
       },
     );
@@ -148,7 +167,7 @@ export class AuthService {
     const refreshToken = this.jwtService.sign(
       { sub: userId, identifier, role },
       {
-        secret: process.env.JWT_REFRESH_SECRET || 'refresh-secret-key',
+        secret: process.env.JWT_REFRESH_SECRET,
         expiresIn: '7d',
       },
     );

@@ -58,7 +58,7 @@ export class UsersController {
   ) {
     return this.usersService.update(
       id,
-      req.user,
+      { ...req.user, nama: req.user?.nama },
       dto,
     );
   }
@@ -69,7 +69,7 @@ export class UsersController {
   @UseGuards(RoleGuard)
   @Role('ADMIN')
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.usersService.remove(id);
+  remove(@Param('id') id: string, @Req() req) {
+    return this.usersService.remove(id, req.user?.nama);
   }
 }

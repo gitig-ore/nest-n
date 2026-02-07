@@ -22,10 +22,10 @@ model User {
 }
 
 model Barang {
-  id         String   @id @default(uuid())
-  kodeBarang String   @unique
-  namaBarang String
-  kondisi    String
+  id          String   @id @default(uuid())
+  kodeBarang  String   @unique
+  namaBarang  String
+  kondisi     String
   stok       Int
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
@@ -35,18 +35,20 @@ model Barang {
 }
 
 model Loan {
-  id             String     @id @default(uuid())
-  tanggalPinjam   DateTime?
-  tanggalKembali DateTime?
-  status         LoanStatus
-  peminjamId     String
-  adminId        String?
-  barangId       String
-  createdAt      DateTime   @default(now())
-  updatedAt      DateTime   @updatedAt
-  admin          User?      @relation("AdminLoan", fields: [adminId], references: [id])
-  barang         Barang     @relation(fields: [barangId], references: [id])
-  peminjam       User       @relation("PeminjamLoan", fields: [peminjamId], references: [id])
+  id                String     @id @default(uuid())
+  tanggalPinjam      DateTime?  // NULL for PENDING, set when approved
+  tanggalJatuhTempo  DateTime?  // NULL for PENDING, calculated = tanggalPinjam + 24 hours
+  tanggalDikembalikan DateTime?  // NULL means not returned yet
+  returnReason       String?    // Reason notes when returned
+  status            LoanStatus
+  peminjamId        String
+  adminId           String?
+  barangId          String
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+  admin             User?      @relation("AdminLoan", fields: [adminId], references: [id])
+  barang            Barang     @relation(fields: [barangId], references: [id])
+  peminjam          User       @relation("PeminjamLoan", fields: [peminjamId], references: [id])
 
   @@index([peminjamId])
   @@index([adminId])
@@ -56,12 +58,14 @@ model Loan {
 
 enum Role {
   ADMIN
-  SISWA
+  PETUGAS
+  PEMINJAM
 }
 
 enum LoanStatus {
-  PENDING
-  DIPINJAM
-  DIKEMBALIKAN
-  TERLAMBAT
+  PENDING      // Menunggu persetujuan
+  DISETUJUI   // Disetujui, belum diambil
+  DIPINJAM    // Sedang dipinjam
+  DIKEMBALIKAN// Sudah dikembalikan
+  DITOLAK     // Pengajuan ditolak
 }

@@ -8,8 +8,9 @@ import { BarangModule } from './barang/barang.module';
 import { UsersModule } from './users/users.module';
 import { LoanModule } from './loan/loan.module';
 
+
 @Module({
-  imports: [PrismaModule, AuthModule, BarangModule, UsersModule, LoanModule],
+  imports: [PrismaModule, AuthModule, BarangModule, UsersModule, LoanModule, ],
   controllers: [AppController],
   providers: [AppService],
 })

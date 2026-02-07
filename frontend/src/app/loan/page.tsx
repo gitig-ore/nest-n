@@ -11,7 +11,7 @@ import Card from '@/components/shadcn/Card';
 
 type Loan = {
   id: string;
-  status: 'PENDING' | 'DIPINJAM' | 'DIKEMBALIKAN' | 'TERLAMBAT';
+  status: 'PENDING' | 'DIPINJAM' | 'DIKEMBALIKAN' | 'TERLAMBAT' | 'DITOLAK';
   tanggalPinjam?: string;
   createdAt: string;
   barang?: {
@@ -45,6 +45,11 @@ export default function LoanPage() {
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<Tab>('all');
   const [error, setError] = useState('');
+  
+  // Modal state for return confirmation
+  const [showReturnModal, setShowReturnModal] = useState(false);
+  const [selectedLoan, setSelectedLoan] = useState<Loan | null>(null);
+  const [returnReason, setReturnReason] = useState('');
 
   const isAdmin = user?.role === 'ADMIN';
   const isPeminjam = user?.role === 'PEMINJAM';
@@ -70,12 +75,23 @@ export default function LoanPage() {
     setError('');
     try {
       let endpoint = '/loan';
-      if (activeTab === 'pending') endpoint = '/loan/pending';
-      else if (activeTab === 'active') endpoint = '/loan/active';
-      else if (activeTab === 'overdue') endpoint = '/loan/overdue';
-
-      const res = await apiClient.get(endpoint);
-      setLoans(res.data || []);
+      let data;
+      
+      // For peminjam, use /loan/me endpoint
+      if (isPeminjam) {
+        const res = await apiClient.get('/loan/me');
+        data = res.data?.loans || [];
+      } else {
+        // For admin, use the filtered endpoints
+        if (activeTab === 'pending') endpoint = '/loan/pending';
+        else if (activeTab === 'active') endpoint = '/loan/active';
+        else if (activeTab === 'overdue') endpoint = '/loan/overdue';
+        
+        const res = await apiClient.get(endpoint);
+        data = res.data || [];
+      }
+      
+      setLoans(data);
     } catch (err: any) {
       setError(err.response?.data?.message || 'Gagal memuat data');
     } finally {
@@ -120,9 +136,23 @@ export default function LoanPage() {
   };
 
   const handleReturn = async (loanId: string) => {
-    if (!confirm('Tandai sebagai dikembalikan?')) return;
+    // Open confirmation modal instead of using confirm()
+    const loan = loans.find(l => l.id === loanId);
+    setSelectedLoan(loan || null);
+    setReturnReason('');
+    setShowReturnModal(true);
+  };
+
+  const confirmReturn = async () => {
+    if (!selectedLoan) return;
+    
     try {
-      await apiClient.post('/loan/return', { loanId });
+      await apiClient.post('/loan/return', { 
+        loanId: selectedLoan.id,
+        reason: returnReason 
+      });
+      setShowReturnModal(false);
+      setSelectedLoan(null);
       fetchLoans();
     } catch (err: any) {
       alert(err.response?.data?.message || 'Gagal mengembalikan');
@@ -340,6 +370,71 @@ export default function LoanPage() {
             </div>
           )}
         </div>
+
+        {/* Return Confirmation Modal */}
+        {showReturnModal && selectedLoan && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-xl shadow-lg w-full max-w-md mx-4">
+              <div className="p-6 border-b border-gray-200">
+                <h3 className="text-lg font-semibold text-gray-900">Konfirmasi Pengembalian</h3>
+              </div>
+              
+              <div className="p-6">
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                  <div className="flex items-center">
+                    <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mr-3">
+                      <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                      </svg>
+                    </div>
+                    <div>
+                      <p className="font-medium text-gray-900">{selectedLoan.barang?.namaBarang}</p>
+                      <p className="text-sm text-gray-500">{selectedLoan.barang?.kodeBarang}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+                  <p className="text-sm text-yellow-700">
+                    <strong>Peminjam:</strong> {selectedLoan.peminjam?.nama}
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Catatan Pengembalian (opsional)
+                  </label>
+                  <textarea
+                    value={returnReason}
+                    onChange={(e) => setReturnReason(e.target.value)}
+                    placeholder="Contoh: Barang dalam kondisi baik..."
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                    rows={3}
+                  />
+                </div>
+              </div>
+
+              <div className="p-6 border-t border-gray-200 flex justify-end gap-3">
+                <button
+                  onClick={() => {
+                    setShowReturnModal(false);
+                    setSelectedLoan(null);
+                    setReturnReason('');
+                  }}
+                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium"
+                >
+                  Batal
+                </button>
+                <button
+                  onClick={confirmReturn}
+                  className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors text-sm font-medium"
+                >
+                  Konfirmasi Pengembalian
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </AdminLayout>
     </ProtectedRoute>
   );

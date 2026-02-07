@@ -6,17 +6,25 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateBarangDto } from './dto/create-barang.dto';
 import { UpdateBarangDto } from './dto/update-barang.dto';
 
+
 @Injectable()
 export class BarangService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+
+  ) {}
 
   // ===============================
   // ADMIN: TAMBAH BARANG
   // ===============================
-  async create(dto: CreateBarangDto) {
-    return this.prisma.barang.create({
+  async create(dto: CreateBarangDto, adminName?: string) {
+    const result = await this.prisma.barang.create({
       data: dto as any,
     });
+
+   
+
+    return result;
   }
 
   // ===============================
@@ -46,23 +54,31 @@ export class BarangService {
   // ===============================
   // ADMIN: UPDATE BARANG
   // ===============================
-  async update(id: string, dto: UpdateBarangDto) {
-    await this.findOne(id); // validasi exist
+  async update(id: string, dto: UpdateBarangDto, adminName?: string) {
+    const existing = await this.findOne(id);
 
-    return this.prisma.barang.update({
+    const result = await this.prisma.barang.update({
       where: { id },
       data: dto as any,
     });
+
+    
+
+    return result;
   }
 
   // ===============================
   // ADMIN: HAPUS BARANG
   // ===============================
-  async remove(id: string) {
-    await this.findOne(id);
+  async remove(id: string, adminName?: string) {
+    const existing = await this.findOne(id);
 
-    return this.prisma.barang.delete({
+    const result = await this.prisma.barang.delete({
       where: { id },
     });
+
+   
+
+    return result;
   }
 }

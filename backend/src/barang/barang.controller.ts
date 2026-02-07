@@ -7,6 +7,7 @@ import {
   Put,
   Delete,
   UseGuards,
+  Request,
 } from '@nestjs/common';
 import { BarangService } from './barang.service';
 import { CreateBarangDto } from './dto/create-barang.dto';
@@ -25,8 +26,8 @@ export class BarangController {
   @UseGuards(JwtGuard, RoleGuard)
   @Role('ADMIN')
   @Post()
-  create(@Body() dto: CreateBarangDto) {
-    return this.barangService.create(dto);
+  create(@Body() dto: CreateBarangDto, @Request() req: any) {
+    return this.barangService.create(dto, req.user?.nama);
   }
 
   // ===============================
@@ -56,8 +57,9 @@ export class BarangController {
   update(
     @Param('id') id: string,
     @Body() dto: UpdateBarangDto,
+    @Request() req: any,
   ) {
-    return this.barangService.update(id, dto);
+    return this.barangService.update(id, dto, req.user?.nama);
   }
 
   // ===============================
@@ -66,7 +68,7 @@ export class BarangController {
   @UseGuards(JwtGuard, RoleGuard)
   @Role('ADMIN')
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.barangService.remove(id);
+  remove(@Param('id') id: string, @Request() req: any) {
+    return this.barangService.remove(id, req.user?.nama);
   }
 }

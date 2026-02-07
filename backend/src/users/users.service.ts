@@ -7,9 +7,13 @@ import { PrismaService } from '../prisma/prisma.service';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { Role } from '@prisma/client';
 
+
 @Injectable()
 export class UsersService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+
+  ) {}
 
   // ===============================
   // ADMIN: SEMUA USER
@@ -69,12 +73,12 @@ export class UsersService {
   // ===============================
   async update(
     targetUserId: string,
-    requester: { id: string; role: Role },
+    requester: { id: string; role: Role; nama?: string },
     dto: UpdateUserDto,
   ) {
-    const user = await this.findById(targetUserId);
+    const existing = await this.findById(targetUserId);
 
-    // PEMINJAM hanya boleh update dirinya sendiri
+    // SISWA hanya boleh update dirinya sendiri
     if (
       requester.role === Role.PEMINJAM &&
       requester.id !== targetUserId
@@ -84,7 +88,7 @@ export class UsersService {
       );
     }
 
-    // PEMINJAM tidak boleh ubah role
+    // SISWA tidak boleh ubah role
     if (
       requester.role === Role.PEMINJAM &&
       dto.role
@@ -94,20 +98,27 @@ export class UsersService {
       );
     }
 
-    return this.prisma.user.update({
+    const result = await this.prisma.user.update({
       where: { id: targetUserId },
       data: dto as any,
     });
+
+    
+    return result;
   }
 
   // ===============================
   // ADMIN: HAPUS USER
   // ===============================
-  async remove(id: string) {
-    await this.findById(id);
+  async remove(id: string, adminName?: string) {
+    const existing = await this.findById(id);
 
-    return this.prisma.user.delete({
+    const result = await this.prisma.user.delete({
       where: { id },
     });
+
+    // Audit log
+  
+    return result;
   }
 }
