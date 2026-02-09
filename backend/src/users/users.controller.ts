@@ -5,11 +5,13 @@ import {
   Get,
   Param,
   Patch,
+  Post,
   Req,
   UseGuards,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { CreateUserDto } from './dto/create-user.dto';
 import { JwtGuard } from '../auth/guards/jwt.guard';
 import { RoleGuard } from '../auth/guards/role.guard';
 import { Role } from '../auth/decorators/role.decorator';
@@ -18,6 +20,16 @@ import { Role } from '../auth/decorators/role.decorator';
 @UseGuards(JwtGuard)
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
+
+  // ===============================
+  // ADMIN: CREATE USER
+  // ===============================
+  @UseGuards(RoleGuard)
+  @Role('ADMIN')
+  @Post()
+  create(@Body() dto: CreateUserDto) {
+    return this.usersService.create(dto);
+  }
 
   // ===============================
   // ADMIN: SEMUA USER

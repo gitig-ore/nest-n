@@ -17,6 +17,8 @@ model User {
   nisn            String?  @unique
   loansAsAdmin    Loan[]   @relation("AdminLoan")
   loansAsPeminjam Loan[]   @relation("PeminjamLoan")
+  sentMessages    Message[] @relation("Sender")
+  receivedMessages Message[] @relation("Receiver")
 
   @@index([role])
 }
@@ -50,6 +52,7 @@ model Loan {
   admin             User?      @relation("AdminLoan", fields: [adminId], references: [id])
   barang            Barang     @relation(fields: [barangId], references: [id])
   peminjam          User       @relation("PeminjamLoan", fields: [peminjamId], references: [id])
+  messages          Message[]
 
   @@index([peminjamId])
   @@index([adminId])
@@ -63,10 +66,11 @@ enum Role {
 }
 
 enum LoanStatus {
-  PENDING      // Menunggu persetujuan
+  PENDING      // Menunggu persetujuan admin
   DISETUJUI   // Disetujui, belum diambil
   DIPINJAM    // Sedang dipinjam
-  DIKEMBALIKAN// Sudah dikembalikan
+  PENGEMBALIAN// Peminjam mengajukan pengembalian
+  DIKEMBALIKAN// Admin konfirmasi pengembalian
   DITOLAK     // Pengajuan ditolak
 }
 
@@ -74,4 +78,21 @@ enum ReturnCondition {
   NORMAL // Barang kembali dan layak pakai
   RUSAK  // Barang kembali tapi tidak layak
   HILANG // Barang tidak dikembalikan
+}
+
+model Message {
+  id          String   @id @default(uuid())
+  content     String
+  senderId    String
+  receiverId String
+  loanId      String?  // Optional, untuk pesan terkait peminjaman tertentu
+  isRead      Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  sender      User     @relation("Sender", fields: [senderId], references: [id])
+  receiver    User     @relation("Receiver", fields: [receiverId], references: [id])
+  loan        Loan?    @relation(fields: [loanId], references: [id])
+
+  @@index([senderId])
+  @@index([receiverId])
+  @@index([loanId])
 }

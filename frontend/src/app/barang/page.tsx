@@ -165,7 +165,7 @@ export default function BarangPage() {
               placeholder="Cari barang (kode, nama, kondisi)..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black"
             />
           </div>
         </div>
@@ -173,7 +173,7 @@ export default function BarangPage() {
         {/* Barang Table */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
           <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center">
-            <h2 className="text-lg font-semibold text-gray-900">Daftar Barang</h2>
+            <h2 className="text-lg font-semibold text-black">Daftar Barang</h2>
             <button
               onClick={fetchList}
               className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm font-medium"
@@ -190,7 +190,7 @@ export default function BarangPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
                 </svg>
               </div>
-              <p>Tidak ada data barang</p>
+              <p className="text-black">Tidak ada data barang</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -214,7 +214,7 @@ export default function BarangPage() {
                     </th>
                     {isAdmin && (
                       <th className="text-right px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                        Aksi
+                        aksi
                       </th>
                     )}
                   </tr>
@@ -230,13 +230,13 @@ export default function BarangPage() {
                   }).map((b, index) => (
                     <tr key={b.id} className="hover:bg-gray-50 transition-colors">
                       <td className="px-6 py-4">
-                        <span className="text-sm text-gray-600">{index + 1}</span>
+                        <span className="text-sm text-black">{index + 1}</span>
                       </td>
                       <td className="px-6 py-4">
-                        <span className="text-sm font-medium text-gray-900 font-mono">{b.kodeBarang}</span>
+                        <span className="text-sm font-medium text-black font-mono">{b.kodeBarang}</span>
                       </td>
                       <td className="px-6 py-4">
-                        <span className="text-sm text-gray-900">{b.namaBarang}</span>
+                        <span className="text-sm text-black">{b.namaBarang}</span>
                       </td>
                       <td className="px-6 py-4">{getConditionBadge(b.kondisi || 'Baik')}</td>
                       <td className="px-6 py-4">
@@ -281,10 +281,10 @@ export default function BarangPage() {
 
         {/* Modal */}
         {showModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/80 backdrop-blur-sm">
             <div className="bg-white rounded-xl shadow-xl w-full max-w-md mx-4">
               <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center">
-                <h3 className="text-lg font-semibold text-gray-900">
+                <h3 className="text-lg font-semibold text-black">
                   {editingId ? 'Edit Barang' : 'Tambah Barang'}
                 </h3>
                 <button
@@ -298,42 +298,40 @@ export default function BarangPage() {
               </div>
               <form onSubmit={handleSubmit} className="p-6 space-y-4">
                 <div>
-                  <label className="block text-sm text-gray-600 mb-1">Kode Barang</label>
+                  <label className="block text-sm text-black mb-1">Kode Barang</label>
                   <Input
                   value={formData.kodeBarang}
                   onChange={(e: any) => setFormData({ ...formData, kodeBarang: e.target.value })}
                   placeholder="BRG-001"
-                  className="placeholder:text-gray-900"
+                  className="placeholder:text-gray-400"
                   required
                   disabled={!!editingId}
                   />
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-600 mb-1">Nama Barang</label>
+                  <label className="block text-sm text-black mb-1">Nama Barang</label>
                   <Input
                     value={formData.namaBarang}
                     onChange={(e: any) => setFormData({ ...formData, namaBarang: e.target.value })}
                     placeholder="Laptop Dell"
-                    className="placeholder:text-gray-900"
+                    className="placeholder:text-gray-400"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-600 mb-1">Kondisi</label>
+                  <label className="block text-sm text-black mb-1">Kondisi</label>
                   <select
                     value={formData.kondisi}
                     onChange={(e) => setFormData({ ...formData, kondisi: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" 
-                    
-                  
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-black" 
                   >
-                    <option className="text-gray-900" value="Baik">Baik</option>
-                    <option className="text-gray-900" value="Rusak">Rusak</option>
-                    <option className="text-gray-900" value="Perlu Perbaikan">Perlu Perbaikan</option>
+                    <option className="text-black" value="Baik">Baik</option>
+                    <option className="text-black" value="Rusak">Rusak</option>
+                    <option className="text-black" value="Perlu Perbaikan">Perlu Perbaikan</option>
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-600 mb-1">Stok</label>
+                  <label className="block text-sm text-black mb-1">Stok</label>
                   <Input
                     type="number"
                     value={formData.stok}

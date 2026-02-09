@@ -1,20 +1,21 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { LoanStatus } from '@prisma/client';
-import { ReturnCondition } from './dto/return-loan.dto';
+import { LoanStatus, ReturnCondition } from '@prisma/client';
 
 // ===============================================================
 // DOMAIN RULES ENFORCEMENT (WAJIB, TIDAK BOLEH DILANGGAR)
 // ===============================================================
 // 1. Setiap PEMINJAM hanya boleh memiliki 1 peminjaman aktif
-// 2. Peminjaman aktif = status: PENDING | DISETUJUI | DIPINJAM
+// 2. Peminjaman aktif = status: PENDING | DISETUJUI | DIPINJAM | PENGEMBALIAN
 // 3. Durasi peminjaman FIXED 24 JAM
 // 4. tanggalJatuhTempo = tanggalPinjam + 24 jam (tidak boleh diinput user)
 // 5. Status TERLAMBAT TIDAK disimpan di database (harus dihitung runtime)
 // 6. Jika terlambat: alert di dashboard + TIDAK boleh ajukan baru
 // 7. Pengembalian hanya untuk loan dengan status DIPINJAM
-// 8. Admin wajib memilih kondisi pengembalian (NORMAL, RUSAK, HILANG)
-// 9. NORMAL → stok bertambah, RUSAK/HILANG → stok tidak berubah
+// 8. Peminjam mengajukan pengembalian → status PENGEMBALIAN
+// 9. Admin konfirmasi pengembalian → status DIKEMBALIKAN
+// 10. Admin wajib memilih kondisi (NORMAL, RUSAK, HILANG)
+// 11. NORMAL → stok bertambah, RUSAK/HILANG → stok tidak berubah
 // ==========================================================================================
 
 @Injectable()
@@ -98,16 +99,6 @@ export class LoanService {
     }
 
     // VALIDASI 2: Check if user has late loan
-    // Domain Rule #6: Jika peminjaman terlambat, peminjam TIDAK boleh mengajukan baru
-    const isLate = await this.hasLateLoan(peminjamId);
-    if (isLate) {
-      throw new BadRequestException({
-        code: 'LOAN_IS_LATE',
-        message: 'Anda memiliki peminjaman yang terlambat. Silakan kembalikan barang terlebih dahulu sebelum mengajukan pinjaman baru.',
-        domainRule: 'Jika peminjaman terlambat, peminjam TIDAK boleh mengajukan peminjaman baru',
-      });
-    }
-
     // Check barang availability
     const barang = await this.prisma.barang.findUnique({
       where: { id: barangId },
@@ -247,18 +238,69 @@ export class LoanService {
   }
 
   /**
-   * ADMIN/PETUGAS: Kembalikan barang dengan kondisi
+   * PEMINJAM: Ajukan pengembalian barang
    * Domain Rules:
-   * - Pengembalian hanya untuk loan dengan status DIPINJAM
+   * - Hanya bisa untuk loan dengan status DIPINJAM
+   * - Status berubah menjadi PENGEMBALIAN
+   * - Admin akan melakukan konfirmasi
+   */
+  async requestReturn(loanId: string, peminjamId: string, note?: string) {
+    const loan = await this.prisma.loan.findUnique({
+      where: { id: loanId },
+    });
+
+    if (!loan) {
+      throw new BadRequestException({
+        code: 'LOAN_NOT_FOUND',
+        message: 'Peminjaman tidak ditemukan',
+      });
+    }
+
+    if (loan.peminjamId !== peminjamId) {
+      throw new BadRequestException({
+        code: 'FORBIDDEN',
+        message: 'Anda tidak berhak mengakses peminjaman ini',
+      });
+    }
+
+    if (loan.status !== LoanStatus.DIPINJAM) {
+      throw new BadRequestException({
+        code: 'INVALID_LOAN_STATUS',
+        message: `Pengembalian hanya bisa diajukan untuk peminjaman dengan status DIPINJAM. Status saat ini: ${loan.status}`,
+      });
+    }
+
+    const updatedLoan = await this.prisma.loan.update({
+      where: { id: loanId },
+      data: {
+        status: LoanStatus.PENGEMBALIAN,
+        returnReason: note || 'Pengembalian diajukan oleh peminjam',
+      },
+    });
+
+    return {
+      success: true,
+      code: 'RETURN_REQUESTED',
+      message: 'Pengembalian berhasil diajukan. Menunggu konfirmasi admin.',
+      data: {
+        loanId: loanId,
+        status: LoanStatus.PENGEMBALIAN,
+        submittedAt: new Date(),
+      },
+    };
+  }
+
+  /**
+   * ADMIN/PETUGAS: Konfirmasi pengembalian barang
+   * Domain Rules:
+   * - Pengembalian hanya untuk loan dengan status DIPINJAM atau PENGEMBALIAN
    * - Admin wajib memilih kondisi (NORMAL, RUSAK, HILANG)
    * - NORMAL → stok bertambah
    * - RUSAK → stok tidak bertambah, simpan catatan
    * - HILANG → stok tidak bertambah, tandai kehilangan
    * - Jika melewati batas waktu → status TERLAMBAT
-   * - Pengembalian hanya boleh diproses 1 kali
    */
   async returnLoan(loanId: string, adminId: string, condition: ReturnCondition, reason?: string) {
-    // VALIDASI 1: Check if loan exists and is in DIPINJAM status
     const loan = await this.prisma.loan.findUnique({
       where: { id: loanId },
       include: { barang: true },
@@ -271,14 +313,14 @@ export class LoanService {
       });
     }
 
-    if (loan.status !== LoanStatus.DIPINJAM) {
+    // Accept both DIPINJAM (direct return) and PENGEMBALIAN (after peminjam request)
+    if (loan.status !== LoanStatus.DIPINJAM && loan.status !== LoanStatus.PENGEMBALIAN) {
       throw new BadRequestException({
         code: 'INVALID_LOAN_STATUS',
-        message: `Pengembalian hanya bisa diproses untuk peminjaman dengan status DIPINJAM. Status saat ini: ${loan.status}`,
+        message: `Pengembalian hanya bisa diproses untuk peminjaman dengan status DIPINJAM atau PENGEMBALIAN. Status saat ini: ${loan.status}`,
       });
     }
 
-    // VALIDASI 2: Check if already returned
     if (loan.tanggalDikembalikan !== null) {
       throw new BadRequestException({
         code: 'ALREADY_RETURNED',
@@ -290,18 +332,11 @@ export class LoanService {
     const now = new Date();
     const isLate = loan.tanggalJatuhTempo ? now > loan.tanggalJatuhTempo : false;
 
-    // Determine status based on condition and timeliness
-    let finalStatus: typeof LoanStatus.DIKEMBALIKAN | typeof LoanStatus.DIPINJAM = LoanStatus.DIKEMBALIKAN;
-    if (isLate) {
-      // Even if late, we mark as returned but the late status is tracked
-      finalStatus = LoanStatus.DIKEMBALIKAN;
-    }
-
     // Build update data
     const updateData: any = {
-      status: finalStatus,
+      status: LoanStatus.DIKEMBALIKAN,
       tanggalDikembalikan: now,
-      returnReason: reason || null,
+      returnReason: reason || loan.returnReason || null,
       returnCondition: condition,
       adminId: adminId,
     };
@@ -323,29 +358,50 @@ export class LoanService {
     ]);
 
     // Build response message based on condition
-    let message = 'Barang berhasil dikembalikan';
+    let message = 'Pengembalian berhasil dikonfirmasi';
+    let punishmentType: 'NONE' | 'LATE' | 'DAMAGED' | 'LOST' | 'BOTH' = 'NONE';
+    let punishmentMessage = '';
+
     if (condition === ReturnCondition.RUSAK) {
-      message = 'Barang dikembalikan dengan kondisi RUSAK. Stok tidak bertambah. Silakan catat kerusakan.';
+      message = 'Pengembalian dikonfirmasi dengan kondisi RUSAK. Stok tidak bertambah.';
+      punishmentType = 'DAMAGED';
+      punishmentMessage = '⚠️ PERINGATAN: Barang dikembalikan dalam kondisi RUSAK. Harap kembalikan barang dalam kondisi yang layak di masa depan.';
     } else if (condition === ReturnCondition.HILANG) {
-      message = 'Barang ditandai sebagai HILANG. Stok tidak bertambah. Silakan lakukan penindakan.';
+      message = 'Pengembalian dikonfirmasi. Barang ditandai HILANG. Stok tidak bertambah.';
+      punishmentType = 'LOST';
+      punishmentMessage = '❌ PERINGATAN: Barang tidak dikembalikan (HILANG). Harap tanggung jawab atas kehilangan ini.';
     }
 
     if (isLate) {
-      message += ` (TERLAMBAT: ${Math.ceil((now.getTime() - loan.tanggalJatuhTempo!.getTime()) / (1000 * 60 * 60))} jam melewati batas)`;
+      const lateHours = Math.ceil((now.getTime() - loan.tanggalJatuhTempo!.getTime()) / (1000 * 60 * 60));
+      message += ` (TERLAMBAT: ${lateHours} jam)`;
+      
+      if (punishmentType === 'NONE') {
+        punishmentType = 'LATE';
+        punishmentMessage = `🕐 PERINGATAN: Pengembalian TERLAMBAT ${lateHours} jam. Harap kembalikan barang tepat waktu.`;
+      } else {
+        punishmentType = 'BOTH';
+        punishmentMessage = `🕐❌ PERINGATAN GANDA: Pengembalian TERLAMBAT ${lateHours} jam DAN kondisi ${condition}. Harap kembalikan barang tepat waktu dan dalam kondisi layak.`;
+      }
     }
 
     return {
       success: true,
-      code: 'RETURN_PROCESSED',
+      code: 'RETURN_CONFIRMED',
       message,
       data: {
         loanId: loanId,
-        status: finalStatus,
+        status: LoanStatus.DIKEMBALIKAN,
         condition: condition,
         isLate: isLate,
+        lateHours: isLate ? Math.ceil((now.getTime() - loan.tanggalJatuhTempo!.getTime()) / (1000 * 60 * 60)) : null,
         tanggalDikembalikan: now,
         returnReason: reason || null,
         stockUpdated: condition === ReturnCondition.NORMAL,
+        punishment: {
+          type: punishmentType,
+          message: punishmentMessage,
+        },
       },
     };
   }
@@ -586,3 +642,7 @@ export class LoanService {
     return this.getLateLoans();
   }
 }
+
+
+
+

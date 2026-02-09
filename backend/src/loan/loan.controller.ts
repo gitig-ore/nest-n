@@ -10,6 +10,7 @@ import {
 import { LoanService } from './loan.service';
 import { CreateLoanDto } from './dto/create-loan.dto';
 import { ReturnLoanDto } from './dto/return-loan.dto';
+import { RequestReturnDto } from './dto/request-return.dto';
 import { JwtGuard } from '../auth/guards/jwt.guard';
 import { RoleGuard } from '../auth/guards/role.guard';
 import { Role } from '../auth/decorators/role.decorator';
@@ -65,19 +66,23 @@ export class LoanController {
   }
 
   // ===============================
-  // ADMIN: KEMBALIKAN BARANG
+  // ADMIN: KEMBALIKAN BARANG (CONFIRM)
   // ===============================
-  // Domain Rules:
-  // - Pengembalian hanya untuk loan dengan status DIPINJAM
-  // - Admin wajib memilih kondisi (NORMAL, RUSAK, HILANG)
-  // - NORMAL → stok bertambah
-  // - RUSAK/HILANG → stok tidak berubah
-  // - Jika melewati batas → status TERLAMBAT
   @UseGuards(JwtGuard, RoleGuard)
   @Role('ADMIN')
   @Post('return')
   return(@Body() dto: ReturnLoanDto, @Req() req) {
     return this.loanService.returnLoan(dto.loanId, req.user.id, dto.condition, dto.reason);
+  }
+
+  // ===============================
+  // PEMINJAM: AJUKAN PENGEMBALIAN
+  // ===============================
+  @UseGuards(JwtGuard, RoleGuard)
+  @Role('PEMINJAM')
+  @Post('request-return')
+  requestReturn(@Body() dto: RequestReturnDto, @Req() req) {
+    return this.loanService.requestReturn(dto.loanId, req.user.id, dto.note);
   }
 
   // ===============================

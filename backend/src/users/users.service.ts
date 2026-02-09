@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { CreateUserDto } from './dto/create-user.dto';
 import { Role } from '@prisma/client';
 
 
@@ -14,6 +15,47 @@ export class UsersService {
     private prisma: PrismaService,
 
   ) {}
+
+  // ===============================
+  // ADMIN: CREATE USER
+  // ===============================
+  async create(dto: CreateUserDto) {
+    // Check if nip or nisn already exists
+    if (dto.nip) {
+      const existing = await this.prisma.user.findUnique({
+        where: { nip: dto.nip },
+      });
+      if (existing) {
+        throw new ForbiddenException('NIP sudah terdaftar');
+      }
+    }
+    if (dto.nisn) {
+      const existing = await this.prisma.user.findUnique({
+        where: { nisn: dto.nisn },
+      });
+      if (existing) {
+        throw new ForbiddenException('NISN sudah terdaftar');
+      }
+    }
+
+    const user = await this.prisma.user.create({
+      data: {
+        nama: dto.nama,
+        password: dto.password,
+        role: dto.role,
+        nip: dto.nip || null,
+        nisn: dto.nisn || null,
+      },
+    });
+
+    return {
+      id: user.id,
+      nama: user.nama,
+      email: user.nisn || user.nip || null,
+      role: user.role,
+      createdAt: user.createdAt,
+    };
+  }
 
   // ===============================
   // ADMIN: SEMUA USER

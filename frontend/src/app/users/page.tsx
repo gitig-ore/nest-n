@@ -13,7 +13,17 @@ type User = {
   nama: string;
   email: string;
   role: 'ADMIN' | 'PEMINJAM';
+  nip?: string;
+  nisn?: string;
   createdAt: string;
+};
+
+type UserFormData = {
+  nama: string;
+  password: string;
+  role: 'ADMIN' | 'PEMINJAM';
+  nip: string;
+  nisn: string;
 };
 
 export default function UsersPage() {
@@ -22,6 +32,18 @@ export default function UsersPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [showModal, setShowModal] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  
+  const initialFormData: UserFormData = {
+    nama: '',
+    password: '',
+    role: 'PEMINJAM',
+    nip: '',
+    nisn: '',
+  };
+  
+  const [formData, setFormData] = useState<UserFormData>(initialFormData);
 
   useEffect(() => {
     fetchUsers();
@@ -47,6 +69,53 @@ export default function UsersPage() {
     } catch (err: any) {
       toast.error(err.response?.data?.message || 'Gagal menghapus user');
     }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      if (editingId) {
+        // Update existing user
+        await apiClient.patch(`/users/${editingId}`, {
+          nama: formData.nama,
+          role: formData.role,
+          nip: formData.nip || null,
+          nisn: formData.nisn || null,
+          ...(formData.password ? { password: formData.password } : {}),
+        });
+      } else {
+        // Create new user
+        await apiClient.post('/users', formData);
+      }
+      setShowModal(false);
+      setEditingId(null);
+      setFormData(initialFormData);
+      fetchUsers();
+      toast.success(editingId ? 'User berhasil diperbarui' : 'User berhasil ditambahkan');
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'Gagal menyimpan user');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleEdit = (u: User) => {
+    setEditingId(u.id);
+    setFormData({
+      nama: u.nama,
+      password: '',
+      role: u.role,
+      nip: u.nip || '',
+      nisn: u.nisn || '',
+    });
+    setShowModal(true);
+  };
+
+  const handleCloseModal = () => {
+    setShowModal(false);
+    setEditingId(null);
+    setFormData(initialFormData);
   };
 
   const getRoleBadge = (role: string) => {
@@ -79,6 +148,15 @@ export default function UsersPage() {
             <h1 className="text-2xl font-bold text-gray-900">Manajemen Users</h1>
             <p className="text-gray-500 mt-1">Kelola akun pengguna sistem</p>
           </div>
+          <button
+            onClick={() => setShowModal(true)}
+            className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium shadow-sm flex items-center gap-2"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            Tambah User
+          </button>
         </div>
 
         {error && (
@@ -186,6 +264,12 @@ export default function UsersPage() {
                         </span>
                       </td>
                       <td className="px-6 py-4 text-right">
+                        <button
+                          onClick={() => handleEdit(u)}
+                          className="px-3 py-1 text-blue-500 hover:text-blue-600 text-sm font-medium transition-colors mr-2"
+                        >
+                          Edit
+                        </button>
                         {u.id !== user?.id && (
                           <button
                             onClick={() => handleDelete(u.id)}
@@ -213,6 +297,97 @@ export default function UsersPage() {
             );
           }).length} dari {users.length}
         </div>
+
+        {/* Modal */}
+        {showModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/80 backdrop-blur-sm">
+            <div className="bg-white rounded-xl shadow-xl w-full max-w-md mx-4">
+              <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center">
+                <h3 className="text-lg font-semibold text-gray-900">
+                  {editingId ? 'Edit User' : 'Tambah User'}
+                </h3>
+                <button
+                  onClick={handleCloseModal}
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              <form onSubmit={handleSubmit} className="p-6 space-y-4">
+                <div>
+                  <label className="block text-sm text-gray-600 mb-1">Nama Lengkap</label>
+                  <input
+                    type="text"
+                    value={formData.nama}
+                    onChange={(e) => setFormData({ ...formData, nama: e.target.value })}
+                    placeholder="John Doe"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-600 mb-1">
+                    {formData.role === 'ADMIN' ? 'NIP' : 'NISN'}
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.role === 'ADMIN' ? formData.nip : formData.nisn}
+                    onChange={(e) => setFormData({
+                      ...formData,
+                      [formData.role === 'ADMIN' ? 'nip' : 'nisn']: e.target.value
+                    })}
+                    placeholder={formData.role === 'ADMIN' ? '12345678' : '1234567890'}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required={!editingId}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-600 mb-1">Role</label>
+                  <select
+                    value={formData.role}
+                    onChange={(e) => setFormData({ ...formData, role: e.target.value as 'ADMIN' | 'PEMINJAM' })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="ADMIN">Administrator</option>
+                    <option value="PEMINJAM">Peminjam</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-600 mb-1">
+                    {editingId ? 'Password (kosongkan jika tidak diubah)' : 'Password'}
+                  </label>
+                  <input
+                    type="password"
+                    value={formData.password}
+                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                    placeholder="******"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required={!editingId}
+                    minLength={6}
+                  />
+                </div>
+                <div className="flex justify-end gap-3 pt-4">
+                  <button
+                    type="button"
+                    onClick={handleCloseModal}
+                    className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors text-sm font-medium"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm font-medium disabled:opacity-50"
+                  >
+                    {loading ? 'Menyimpan...' : editingId ? 'Update' : 'Simpan'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
       </AdminLayout>
     </ProtectedRoute>
   );

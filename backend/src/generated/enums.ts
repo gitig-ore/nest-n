@@ -36,3 +36,24 @@ export const PaymentStatus = {
 } as const
 
 export type PaymentStatus = (typeof PaymentStatus)[keyof typeof PaymentStatus]
+
+
+export const LoanStatus = {
+  PENDING: 'PENDING',
+  DISETUJUI: 'DISETUJUI',
+  DIPINJAM: 'DIPINJAM',
+  PENGEMBALIAN: 'PENGEMBALIAN',
+  DIKEMBALIKAN: 'DIKEMBALIKAN',
+  DITOLAK: 'DITOLAK'
+} as const
+
+export type LoanStatus = (typeof LoanStatus)[keyof typeof LoanStatus]
+
+
+export const ReturnCondition = {
+  NORMAL: 'NORMAL',
+  RUSAK: 'RUSAK',
+  HILANG: 'HILANG'
+} as const
+
+export type ReturnCondition = (typeof ReturnCondition)[keyof typeof ReturnCondition]

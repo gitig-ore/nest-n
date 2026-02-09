@@ -8,11 +8,12 @@ import { AuthModule } from './auth/auth.module';
 import { BarangModule } from './barang/barang.module';
 import { UsersModule } from './users/users.module';
 import { LoanModule } from './loan/loan.module';
+import { MessageModule } from './message/message.module';
 import { AllExceptionsFilter } from './filters/all-exceptions.filter';
 
 
 @Module({
-  imports: [PrismaModule, AuthModule, BarangModule, UsersModule, LoanModule, ],
+  imports: [PrismaModule, AuthModule, BarangModule, UsersModule, LoanModule, MessageModule],
   controllers: [AppController],
   providers: [
     AppService,
