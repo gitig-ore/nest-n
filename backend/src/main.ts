@@ -18,8 +18,9 @@ async function bootstrap() {
     res.setHeader('X-XSS-Protection', '1; mode=block');
     // Prevent MIME type sniffing
     res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
-    // Content Security Policy - adjust as needed for your frontend
-    res.setHeader('Content-Security-Policy', "default-src 'self'");
+    // Content Security Policy - allow same-origin and Vercel domains
+    const frontendUrl = process.env.FRONTEND_URL || '';
+    res.setHeader('Content-Security-Policy', `default-src 'self'; connect-src 'self' https://*.vercel.app ${frontendUrl}`);
     // Permissions Policy
     res.setHeader('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
     next();
