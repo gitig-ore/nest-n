@@ -44,7 +44,7 @@ model Loan {
   peminjamId        String
   adminId           String?
   barangId          String
-  createdAt         DateTime   @default(now())
+  createdAt         DateTime   @default(now())        
   updatedAt         DateTime   @updatedAt
   admin             User?      @relation("AdminLoan", fields: [adminId], references: [id])
   barang            Barang     @relation(fields: [barangId], references: [id])
@@ -58,7 +58,6 @@ model Loan {
 
 enum Role {
   ADMIN
-  PETUGAS
   PEMINJAM
 }
 

@@ -21,6 +21,7 @@ export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     fetchUsers();
@@ -86,6 +87,22 @@ export default function UsersPage() {
           </div>
         )}
 
+        {/* Search Bar */}
+        <div className="mb-4">
+          <div className="relative max-w-md">
+            <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            <input
+              type="text"
+              placeholder="Cari user (nama, email, role)..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+          </div>
+        </div>
+
         {/* Users Table */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
           <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center">
@@ -100,7 +117,7 @@ export default function UsersPage() {
           {loading ? (
             <LoadingSpinner message="Memuat data users..." />
           ) : users.length === 0 ? (
-            <div className="p-8 text-center text-gray-500">
+            <div className="p-8 text-center text-black">
               <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
@@ -134,7 +151,14 @@ export default function UsersPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
-                  {users.map((u, index) => (
+                  {users.filter(u => {
+                    const query = searchQuery.toLowerCase();
+                    return (
+                      (u.nama || '').toLowerCase().includes(query) ||
+                      (u.email || '').toLowerCase().includes(query) ||
+                      (u.role || '').toLowerCase().includes(query)
+                    );
+                  }).map((u, index) => (
                     <tr key={u.id} className="hover:bg-gray-50 transition-colors">
                       <td className="px-6 py-4">
                         <span className="text-sm text-gray-600">{index + 1}</span>
@@ -148,7 +172,7 @@ export default function UsersPage() {
                           </div>
                           <div className="ml-3">
                             <p className="text-sm font-medium text-gray-900">{u.nama}</p>
-                            <p className="text-xs text-gray-500 font-mono">{u.id.slice(0, 8)}...</p>
+                            <p className="text-xs text-black font-mono">{u.id.slice(0, 8)}...</p>
                           </div>
                         </div>
                       </td>
@@ -180,7 +204,14 @@ export default function UsersPage() {
         </div>
 
         <div className="mt-4 text-sm text-gray-500 text-center">
-          Total Users: {users.length}
+          Total Users: {users.filter(u => {
+            const query = searchQuery.toLowerCase();
+            return (
+              (u.nama || '').toLowerCase().includes(query) ||
+              (u.email || '').toLowerCase().includes(query) ||
+              (u.role || '').toLowerCase().includes(query)
+            );
+          }).length} dari {users.length}
         </div>
       </AdminLayout>
     </ProtectedRoute>

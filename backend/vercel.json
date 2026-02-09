@@ -6,7 +6,7 @@
   "framework": "nestjs",
   "regions": ["sin1"],
   "functions": {
-    "backend/src/main.ts": {
+    "src/main.ts": {
       "maxDuration": 30
     }
   },
