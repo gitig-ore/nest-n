@@ -383,7 +383,7 @@ export default function LoanPage() {
               placeholder="Cari transaksi (barang, peminjam, status)..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black"
             />
           </div>
         </div>
@@ -447,7 +447,7 @@ export default function LoanPage() {
                     )}
                     <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
                     <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Waktu</th>
-                    <th className="text-right px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Aksi</th>
+                   
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">

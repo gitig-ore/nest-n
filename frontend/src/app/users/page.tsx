@@ -176,7 +176,7 @@ export default function UsersPage() {
               placeholder="Cari user (nama, email, role)..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black"
             />
           </div>
         </div>
@@ -317,18 +317,18 @@ export default function UsersPage() {
               </div>
               <form onSubmit={handleSubmit} className="p-6 space-y-4">
                 <div>
-                  <label className="block text-sm text-gray-600 mb-1">Nama Lengkap</label>
+                  <label className="block text-sm text-black mb-1">Nama Lengkap</label>
                   <input
                     type="text"
                     value={formData.nama}
                     onChange={(e) => setFormData({ ...formData, nama: e.target.value })}
                     placeholder="John Doe"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-600 mb-1">
+                  <label className="block text-sm text-black mb-1">
                     {formData.role === 'ADMIN' ? 'NIP' : 'NISN'}
                   </label>
                   <input
@@ -339,23 +339,23 @@ export default function UsersPage() {
                       [formData.role === 'ADMIN' ? 'nip' : 'nisn']: e.target.value
                     })}
                     placeholder={formData.role === 'ADMIN' ? '12345678' : '1234567890'}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"
                     required={!editingId}
                   />
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-600 mb-1">Role</label>
+                  <label className="block text-sm text-black mb-1">Role</label>
                   <select
                     value={formData.role}
                     onChange={(e) => setFormData({ ...formData, role: e.target.value as 'ADMIN' | 'PEMINJAM' })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"
                   >
-                    <option value="ADMIN">Administrator</option>
-                    <option value="PEMINJAM">Peminjam</option>
+                    <option className="text-black" value="ADMIN">Administrator</option>
+                    <option className="text-black" value="PEMINJAM">Peminjam</option>
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-600 mb-1">
+                  <label className="block text-sm text-black mb-1">
                     {editingId ? 'Password (kosongkan jika tidak diubah)' : 'Password'}
                   </label>
                   <input
@@ -363,7 +363,7 @@ export default function UsersPage() {
                     value={formData.password}
                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                     placeholder="******"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"
                     required={!editingId}
                     minLength={6}
                   />

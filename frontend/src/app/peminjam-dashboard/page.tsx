@@ -71,6 +71,7 @@ export default function PeminjamDashboardPage() {
   const [newMessage, setNewMessage] = useState('');
   const [sendingMessage, setSendingMessage] = useState(false);
   const lastMessagesFetch = useRef<number>(0); // Cache timestamp for messages
+  const messagesEndRef = useRef<HTMLDivElement>(null);
   
   // Domain state
   const [hasActiveLoan, setHasActiveLoan] = useState(false);
@@ -84,6 +85,15 @@ export default function PeminjamDashboardPage() {
     fetchData();
     if (activeTab === 'chat') {
       fetchMessages();
+      
+      // Poll for new messages every 5 seconds when chat tab is open
+      const interval = setInterval(() => {
+        if (activeTab === 'chat') {
+          fetchMessages();
+        }
+      }, 5000);
+      
+      return () => clearInterval(interval);
     }
   }, [activeTab]);
 
@@ -344,6 +354,11 @@ export default function PeminjamDashboardPage() {
   };
 
   const availableBarang = barang.filter(b => b.stok > 0);
+
+  // Auto-scroll to bottom when messages change
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
 
   if (loading) {
     return (
@@ -739,7 +754,7 @@ export default function PeminjamDashboardPage() {
             </div>
             
             {/* Message List */}
-            <div className="h-96 overflow-y-auto p-6 space-y-4 bg-gray-50">
+            <div className="h-96 overflow-y-auto p-6 space-y-4 bg-gray-50" ref={messagesEndRef}>
               {messages.length === 0 ? (
                 <div className="text-center text-gray-500 py-10">
                   <svg className="w-16 h-16 mx-auto text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -772,7 +787,7 @@ export default function PeminjamDashboardPage() {
                   value={newMessage}
                   onChange={(e) => setNewMessage(e.target.value)}
                   placeholder="Ketik pesan..."
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black"
                 />
                 <button
                   type="submit"
