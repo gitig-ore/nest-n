@@ -5,11 +5,6 @@
   "installCommand": "npm install",
   "framework": "nestjs",
   "regions": ["iad1"],
-  "functions": {
-    "dist/main.js": {
-      "maxDuration": 30
-    }
-  },
   "rewrites": [
     {
       "source": "/api/(.*)",
@@ -17,7 +12,7 @@
     },
     {
       "source": "/(.*)",
-      "destination": "/dist/main.js"
+      "destination": "/api/index.js"
     }
   ],
   "headers": [
