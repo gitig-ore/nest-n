@@ -8,8 +8,22 @@ async function createApp() {
     logger: ['error', 'warn', 'log', 'debug'],
   });
   
+  const isProduction = process.env.NODE_ENV === 'production';
+  const frontendUrl = process.env.FRONTEND_URL;
+  
+  let allowedOrigins;
+  if (isProduction) {
+    allowedOrigins = [
+      'https://*.vercel.app',
+      'https://*.now.sh',
+      frontendUrl || '',
+    ].filter(Boolean);
+  } else {
+    allowedOrigins = ['http://localhost:3000', 'http://127.0.0.1:3000'];
+  }
+  
   app.enableCors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+    origin: allowedOrigins.length > 0 ? allowedOrigins : false,
     credentials: true,
   });
   

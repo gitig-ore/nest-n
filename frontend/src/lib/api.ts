@@ -3,7 +3,20 @@
 import axios from 'axios';
 
 // Default to backend port 3001; set NEXT_PUBLIC_API_URL in your environment to override
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+const getApiUrl = () => {
+  // In production on Vercel, use same origin
+  if (process.env.NODE_ENV === 'production' && process.env.VERCEL) {
+    return ''; // Same origin
+  }
+  return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+};
+
+const API_URL = getApiUrl();
+
+const apiClient = axios.create({
+  baseURL: API_URL || undefined, // undefined means use relative URL
+  withCredentials: true,
+});
 
 const apiClient = axios.create({
   baseURL: API_URL,

@@ -71,8 +71,12 @@ async function bootstrap() {
   // Define allowed origins
   let allowedOrigins: string[];
   if (isProduction) {
-    // In production, only allow the configured FRONTEND_URL
-    allowedOrigins = frontendUrl ? [frontendUrl] : [];
+    // In production, allow Vercel preview/production domains and configured FRONTEND_URL
+    allowedOrigins = [
+      'https://*.vercel.app',
+      'https://*.now.sh',
+      frontendUrl || '',
+    ].filter(Boolean);
   } else {
     // In development, allow localhost origins
     allowedOrigins = [
