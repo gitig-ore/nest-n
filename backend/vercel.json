@@ -4,9 +4,9 @@
   "outputDirectory": "dist",
   "installCommand": "npm install",
   "framework": "nestjs",
-  "regions": ["sin1"],
+  "regions": ["iad1"],
   "functions": {
-    "src/main.ts": {
+    "dist/main.js": {
       "maxDuration": 30
     }
   },
@@ -17,7 +17,7 @@
     },
     {
       "source": "/(.*)",
-      "destination": "/src/main.ts"
+      "destination": "/dist/main.js"
     }
   ],
   "headers": [
