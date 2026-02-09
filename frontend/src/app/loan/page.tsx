@@ -53,6 +53,7 @@ export default function LoanPage() {
   const [showReturnModal, setShowReturnModal] = useState(false);
   const [selectedLoan, setSelectedLoan] = useState<Loan | null>(null);
   const [returnReason, setReturnReason] = useState('');
+  const [returnCondition, setReturnCondition] = useState<'NORMAL' | 'RUSAK' | 'HILANG'>('NORMAL');
 
   const isAdmin = user?.role === 'ADMIN';
   const isPeminjam = user?.role === 'PEMINJAM';
@@ -145,6 +146,7 @@ export default function LoanPage() {
     const loan = loans.find(l => l.id === loanId);
     setSelectedLoan(loan || null);
     setReturnReason('');
+    setReturnCondition('NORMAL');
     setShowReturnModal(true);
   };
 
@@ -154,12 +156,16 @@ export default function LoanPage() {
     try {
       await apiClient.post('/loan/return', { 
         loanId: selectedLoan.id,
+        condition: returnCondition,
         reason: returnReason 
       });
       setShowReturnModal(false);
       setSelectedLoan(null);
+      setReturnReason('');
+      setReturnCondition('NORMAL');
       fetchLoans();
-      toast.success('Pengembalian berhasil dicatat');
+      fetchBarang(); // Refresh available items after return
+      toast.success('Pengembalian berhasil dicatat. Anda sekarang bisa mengajukan pinjaman lagi.');
     } catch (err: any) {
       toast.error(err.response?.data?.message || 'Gagal mengembalikan');
     }
@@ -432,6 +438,28 @@ export default function LoanPage() {
                   </p>
                 </div>
 
+                {/* Condition Selection */}
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Kondisi Barang <span className="text-red-500">*</span>
+                  </label>
+                  <Select
+                    value={returnCondition}
+                    onChange={(e: any) => setReturnCondition(e.target.value)}
+                    required
+                    className="w-full"
+                  >
+                    <option value="NORMAL">🟢 Normal - Barang kembali dan layak pakai</option>
+                    <option value="RUSAK">🟠 Rusak - Barang kembali tapi tidak layak</option>
+                    <option value="HILANG">🔴 Hilang - Barang tidak dikembalikan</option>
+                  </Select>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {returnCondition === 'NORMAL' && 'Stok barang akan bertambah'}
+                    {returnCondition === 'RUSAK' && 'Stok tidak bertambah. Catat kerusakan.'}
+                    {returnCondition === 'HILANG' && 'Stok tidak bertambah. Tandai sebagai kehilangan.'}
+                  </p>
+                </div>
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Catatan Pengembalian (opsional)
@@ -452,6 +480,7 @@ export default function LoanPage() {
                     setShowReturnModal(false);
                     setSelectedLoan(null);
                     setReturnReason('');
+                    setReturnCondition('NORMAL');
                   }}
                   className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium"
                 >
@@ -459,7 +488,11 @@ export default function LoanPage() {
                 </button>
                 <button
                   onClick={confirmReturn}
-                  className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors text-sm font-medium"
+                  className={`px-4 py-2 text-white rounded-lg transition-colors text-sm font-medium ${
+                    returnCondition === 'NORMAL' ? 'bg-green-500 hover:bg-green-600' :
+                    returnCondition === 'RUSAK' ? 'bg-yellow-500 hover:bg-yellow-600' :
+                    'bg-red-500 hover:bg-red-600'
+                  }`}
                 >
                   Konfirmasi Pengembalian
                 </button>

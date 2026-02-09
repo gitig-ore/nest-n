@@ -40,6 +40,7 @@ model Loan {
   tanggalJatuhTempo  DateTime?  // NULL for PENDING, calculated = tanggalPinjam + 24 hours
   tanggalDikembalikan DateTime?  // NULL means not returned yet
   returnReason       String?    // Reason notes when returned
+  returnCondition    ReturnCondition? // Condition of item when returned (NORMAL, RUSAK, HILANG)
   status            LoanStatus
   peminjamId        String
   adminId           String?
@@ -67,4 +68,10 @@ enum LoanStatus {
   DIPINJAM    // Sedang dipinjam
   DIKEMBALIKAN// Sudah dikembalikan
   DITOLAK     // Pengajuan ditolak
+}
+
+enum ReturnCondition {
+  NORMAL // Barang kembali dan layak pakai
+  RUSAK  // Barang kembali tapi tidak layak
+  HILANG // Barang tidak dikembalikan
 }

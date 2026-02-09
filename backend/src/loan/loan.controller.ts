@@ -67,11 +67,17 @@ export class LoanController {
   // ===============================
   // ADMIN: KEMBALIKAN BARANG
   // ===============================
+  // Domain Rules:
+  // - Pengembalian hanya untuk loan dengan status DIPINJAM
+  // - Admin wajib memilih kondisi (NORMAL, RUSAK, HILANG)
+  // - NORMAL → stok bertambah
+  // - RUSAK/HILANG → stok tidak berubah
+  // - Jika melewati batas → status TERLAMBAT
   @UseGuards(JwtGuard, RoleGuard)
   @Role('ADMIN')
   @Post('return')
   return(@Body() dto: ReturnLoanDto, @Req() req) {
-    return this.loanService.returnLoan(dto.loanId, req.user.id, dto.reason);
+    return this.loanService.returnLoan(dto.loanId, req.user.id, dto.condition, dto.reason);
   }
 
   // ===============================

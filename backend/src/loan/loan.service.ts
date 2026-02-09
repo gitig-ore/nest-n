@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { LoanStatus } from '@prisma/client';
+import { ReturnCondition } from './dto/return-loan.dto';
 
 // ===============================================================
 // DOMAIN RULES ENFORCEMENT (WAJIB, TIDAK BOLEH DILANGGAR)
@@ -11,7 +12,10 @@ import { LoanStatus } from '@prisma/client';
 // 4. tanggalJatuhTempo = tanggalPinjam + 24 jam (tidak boleh diinput user)
 // 5. Status TERLAMBAT TIDAK disimpan di database (harus dihitung runtime)
 // 6. Jika terlambat: alert di dashboard + TIDAK boleh ajukan baru
-// ===============================================================
+// 7. Pengembalian hanya untuk loan dengan status DIPINJAM
+// 8. Admin wajib memilih kondisi pengembalian (NORMAL, RUSAK, HILANG)
+// 9. NORMAL → stok bertambah, RUSAK/HILANG → stok tidak berubah
+// ==========================================================================================
 
 @Injectable()
 export class LoanService {
@@ -243,43 +247,105 @@ export class LoanService {
   }
 
   /**
-   * ADMIN/PETUGAS: Kembalikan barang
+   * ADMIN/PETUGAS: Kembalikan barang dengan kondisi
    * Domain Rules:
-   * - Set tanggalDikembalikan = now
-   * - Increment stok barang
+   * - Pengembalian hanya untuk loan dengan status DIPINJAM
+   * - Admin wajib memilih kondisi (NORMAL, RUSAK, HILANG)
+   * - NORMAL → stok bertambah
+   * - RUSAK → stok tidak bertambah, simpan catatan
+   * - HILANG → stok tidak bertambah, tandai kehilangan
+   * - Jika melewati batas waktu → status TERLAMBAT
+   * - Pengembalian hanya boleh diproses 1 kali
    */
-  async returnLoan(loanId: string, adminId: string, reason?: string) {
+  async returnLoan(loanId: string, adminId: string, condition: ReturnCondition, reason?: string) {
+    // VALIDASI 1: Check if loan exists and is in DIPINJAM status
     const loan = await this.prisma.loan.findUnique({
       where: { id: loanId },
       include: { barang: true },
     });
 
-    if (!loan || loan.status !== LoanStatus.DIPINJAM) {
-      throw new BadRequestException('Peminjaman tidak valid atau belum diambil');
+    if (!loan) {
+      throw new BadRequestException({
+        code: 'LOAN_NOT_FOUND',
+        message: 'Peminjaman tidak ditemukan',
+      });
     }
+
+    if (loan.status !== LoanStatus.DIPINJAM) {
+      throw new BadRequestException({
+        code: 'INVALID_LOAN_STATUS',
+        message: `Pengembalian hanya bisa diproses untuk peminjaman dengan status DIPINJAM. Status saat ini: ${loan.status}`,
+      });
+    }
+
+    // VALIDASI 2: Check if already returned
+    if (loan.tanggalDikembalikan !== null) {
+      throw new BadRequestException({
+        code: 'ALREADY_RETURNED',
+        message: 'Peminjaman ini sudah dikembalikan sebelumnya',
+      });
+    }
+
+    // Calculate if late
+    const now = new Date();
+    const isLate = loan.tanggalJatuhTempo ? now > loan.tanggalJatuhTempo : false;
+
+    // Determine status based on condition and timeliness
+    let finalStatus: typeof LoanStatus.DIKEMBALIKAN | typeof LoanStatus.DIPINJAM = LoanStatus.DIKEMBALIKAN;
+    if (isLate) {
+      // Even if late, we mark as returned but the late status is tracked
+      finalStatus = LoanStatus.DIKEMBALIKAN;
+    }
+
+    // Build update data
+    const updateData: any = {
+      status: finalStatus,
+      tanggalDikembalikan: now,
+      returnReason: reason || null,
+      returnCondition: condition,
+      adminId: adminId,
+    };
+
+    // Transaction: Update loan + optionally update stock
+    const stockUpdate = condition === ReturnCondition.NORMAL 
+      ? this.prisma.barang.update({
+          where: { id: loan.barangId },
+          data: { stok: { increment: 1 } },
+        })
+      : null;
 
     const result = await this.prisma.$transaction([
       this.prisma.loan.update({
         where: { id: loanId },
-        data: {
-          status: LoanStatus.DIKEMBALIKAN,
-          tanggalDikembalikan: new Date(),
-          returnReason: reason || null,
-        },
+        data: updateData,
       }),
-      this.prisma.barang.update({
-        where: { id: loan.barangId },
-        data: { stok: { increment: 1 } },
-      }),
+      ...(stockUpdate ? [stockUpdate] : []),
     ]);
 
+    // Build response message based on condition
+    let message = 'Barang berhasil dikembalikan';
+    if (condition === ReturnCondition.RUSAK) {
+      message = 'Barang dikembalikan dengan kondisi RUSAK. Stok tidak bertambah. Silakan catat kerusakan.';
+    } else if (condition === ReturnCondition.HILANG) {
+      message = 'Barang ditandai sebagai HILANG. Stok tidak bertambah. Silakan lakukan penindakan.';
+    }
+
+    if (isLate) {
+      message += ` (TERLAMBAT: ${Math.ceil((now.getTime() - loan.tanggalJatuhTempo!.getTime()) / (1000 * 60 * 60))} jam melewati batas)`;
+    }
+
     return {
-      message: 'Barang berhasil dikembalikan',
-      loan: {
-        id: loanId,
-        status: LoanStatus.DIKEMBALIKAN,
-        tanggalDikembalikan: result[0].tanggalDikembalikan,
-        returnReason: result[0].returnReason,
+      success: true,
+      code: 'RETURN_PROCESSED',
+      message,
+      data: {
+        loanId: loanId,
+        status: finalStatus,
+        condition: condition,
+        isLate: isLate,
+        tanggalDikembalikan: now,
+        returnReason: reason || null,
+        stockUpdated: condition === ReturnCondition.NORMAL,
       },
     };
   }
