@@ -2,19 +2,25 @@
 
 import axios from 'axios';
 
-// Default to backend port 3001; set NEXT_PUBLIC_API_URL in your environment to override
+// Use Vercel backend URL in production, fallback to localhost
+const PRODUCTION_API_URL = 'https://nest-62fbj1ktg-alif-anwars-projects-8475ac4f.vercel.app';
+
 const getApiUrl = () => {
-  // In production on Vercel, use same origin
-  if (process.env.NODE_ENV === 'production' && process.env.VERCEL) {
-    return ''; // Same origin
+  // Check for environment variable first
+  if (process.env.NEXT_PUBLIC_API_URL) {
+    return process.env.NEXT_PUBLIC_API_URL;
   }
-  return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+  // In production on Vercel, use the production backend URL
+  if (process.env.NODE_ENV === 'production' && process.env.VERCEL) {
+    return PRODUCTION_API_URL;
+  }
+  return 'http://localhost:3001';
 };
 
 const API_URL = getApiUrl();
 
 const apiClient = axios.create({
-  baseURL: API_URL || undefined, // undefined means use relative URL
+  baseURL: API_URL,
   withCredentials: true,
 });
 
