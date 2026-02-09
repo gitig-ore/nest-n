@@ -18,11 +18,6 @@ const apiClient = axios.create({
   withCredentials: true,
 });
 
-const apiClient = axios.create({
-  baseURL: API_URL,
-  withCredentials: true,
-});
-
 // Add request interceptor to include access token
 apiClient.interceptors.request.use((config) => {
   const token = localStorage.getItem('accessToken');
